@@ -1,4 +1,4 @@
-use crate::{GameMode, GameSet, ModeParams};
+use crate::gamemodes::{GameMode, GameSet, ModeParams};
 
 pub enum GameRules {
     Dutch,
