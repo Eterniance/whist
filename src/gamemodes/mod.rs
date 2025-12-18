@@ -1,8 +1,11 @@
 #![allow(unused)]
 
-mod emballage;
-mod picolo;
-mod seul;
+pub mod emballage;
+pub use emballage::Emballage;
+pub mod picolo;
+pub use picolo::Picolo;
+pub mod seul;
+pub use seul::Seul;
 
 pub const TOTAL_TRICKS: i16 = 13;
 
