@@ -1,10 +1,27 @@
 use super::*;
 
+#[derive(Debug)]
 pub struct Seul {
     tricks_to_win: i16,
     min_points: i16,
     points_per_suppl_trick: i16,
     max_tricks_allowed: i16,
+}
+
+impl Seul {
+    pub fn new(
+        tricks_to_win: i16,
+        min_points: i16,
+        points_per_suppl_trick: i16,
+        max_tricks_allowed: i16,
+    ) -> Self {
+        Self {
+            tricks_to_win,
+            min_points,
+            points_per_suppl_trick,
+            max_tricks_allowed,
+        }
+    }
 }
 
 impl Score for Seul {
@@ -28,7 +45,7 @@ impl Score for Seul {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     const SEUL: Seul = Seul {
         tricks_to_win: 6,
         min_points: 6,
@@ -44,7 +61,7 @@ mod tests {
         assert_eq!(expected_score, SEUL.get_score(tricks));
     }
 
-        #[test]
+    #[test]
     fn test_seul_lose() {
         let tricks = 3;
         let expected_score = -30;

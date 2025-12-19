@@ -1,7 +1,8 @@
 #![allow(unused)]
 
+use std::fmt::Debug;
 pub mod emballage;
-pub use emballage::Emballage;
+pub use emballage::{Emballage, EmballageHand};
 pub mod picolo;
 pub use picolo::Picolo;
 pub mod seul;
@@ -15,7 +16,7 @@ pub enum GameResult {
     Capot,
 }
 
-pub trait Score {
+pub trait Score: Debug {
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult);
 
     fn get_score(&self, tricks: i16) -> i16 {

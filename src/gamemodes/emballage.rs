@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug)]
 pub struct Emballage {
     tricks_to_win: i16,
     min_points: i16,
@@ -16,9 +17,16 @@ impl Emballage {
     }
 }
 
+#[derive(Debug)]
 pub struct EmballageHand {
     pub bid: i16,
     rules: Emballage,
+}
+
+impl EmballageHand {
+    pub fn new(bid: i16, rules: Emballage) -> Self {
+        Self { bid, rules }
+    }
 }
 
 impl Score for EmballageHand {
