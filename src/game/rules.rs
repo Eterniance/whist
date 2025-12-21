@@ -1,34 +1,51 @@
 use crate::gamemodes::*;
 
+enum ContractorsKind {
+    Solo,
+    Team,
+    Other,
+}
+
+pub struct Contract {
+    pub max_bid: Option<i16>,
+    contractors_type: ContractorsKind,
+    gamemode: Box<dyn Score>,
+}
+
+impl Contract {
+    pub fn get_score(&self, tricks: i16) -> i16 {
+        self.gamemode.get_score(tricks)
+    }
+}
+
 pub enum GameRules {
     Dutch,
     French,
 }
 
-pub struct Game {
-    gamemodes: Vec<Box<dyn Score>>
-}
-
-pub fn select_rules(rules: GameRules) -> Vec<Box<dyn Score>> {
+pub fn select_rules(rules: GameRules) -> Vec<Contract> {
     match rules {
         GameRules::Dutch => {
             let tricks_to_win = 8;
             let rules = Emballage::new(tricks_to_win, 2, 1);
-            let hand = EmballageHand::new(tricks_to_win, rules);
+            let hand_1 = Contract {
+                max_bid: Some(TOTAL_TRICKS),
+                gamemode: Box::new(rules),
+                contractors_type: ContractorsKind::Team,
+            };
+            let max_tricks_allowed = 8;
+            let seul = Seul::new(6, 6, 3, max_tricks_allowed);
 
-            let seul = Seul::new(6, 6, 3, 8);
+            let hand_2 = Contract {
+                max_bid: Some(max_tricks_allowed),
+                gamemode: Box::new(seul),
+                contractors_type: ContractorsKind::Solo,
+            };
 
-            vec![Box::new(hand), Box::new(seul)]
+            vec![hand_1, hand_2]
         }
         GameRules::French => {
-            let tricks_to_win = 8;
-            let rules = Emballage::new(tricks_to_win, 4, 2);
-            let hand = EmballageHand::new(tricks_to_win, rules);
-
-            let seul = Seul::new(5, 6, 3, 8);
-
-            let picolo = Picolo::new(12);
-            vec![Box::new(hand), Box::new(seul), Box::new(picolo)]
+            todo!()
         }
     }
 }
@@ -41,7 +58,7 @@ mod tests {
     fn dutch() {
         let scorables = select_rules(GameRules::Dutch);
         let emballage = &scorables[0];
-        let emballage_score = emballage.get_score(8);
+        let emballage_score = emballage.gamemode.get_score(8);
 
         let expected_score = 2;
 

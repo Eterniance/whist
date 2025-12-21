@@ -40,6 +40,10 @@ impl Score for Seul {
             }
         }
     }
+    
+    fn min_tricks(&self) -> i16 {
+        self.tricks_to_win
+    }
 }
 
 #[cfg(test)]

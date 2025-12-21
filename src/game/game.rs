@@ -1,50 +1,88 @@
 use std::collections::HashMap;
 
-pub enum Contractors<'hand> {
-    Solo(&'hand str),
-    Team(&'hand str, &'hand str),
+use itertools::{Either, Itertools};
+
+use super::GameError;
+
+pub enum Contractors {
+    Solo(PlayerId),
+    Team(PlayerId, PlayerId),
+    Other,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayerId(usize);
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Player {
     pub name: String,
     pub score: i16,
+    id: PlayerId,
 }
 
 impl Player {
-    pub fn new(name: String) -> Self {
-        Self { name, score: 0 }
+    fn new(name: String, idx: usize) -> Self {
+        Self {
+            name,
+            score: 0,
+            id: PlayerId(idx),
+        }
     }
 }
 
 pub struct Players {
-    pub players: HashMap<String, Player>,
+    players: Vec<Player>,
+    next_idx: usize,
+    name_to_id: HashMap<String, PlayerId>,
 }
 
 impl Players {
-    pub fn new(players: [Player; 4]) -> Self {
-        let mut hmap = HashMap::with_capacity(4);
-        for p in players {
-            hmap.insert(p.name.clone(), p);
+    pub fn new() -> Self {
+        let players = Vec::new();
+        let name_to_id = HashMap::new();
+        Self {
+            players,
+            next_idx: 0,
+            name_to_id,
         }
-        Self { players: hmap }
+    }
+
+    pub fn add_player(&mut self, name: String) -> Result<(), GameError> {
+        let player = Player::new(name.clone(), self.next_idx);
+        if self.players.len() >= 4 {
+            return Err(GameError::TooManyPlayer);
+        } else if self.players.contains(&player) {
+            return Err(GameError::PlayerAlreadyExists);
+        }
+        self.name_to_id.insert(name, PlayerId(self.next_idx));
+        self.next_idx += 1;
+        self.players.push(player);
+        Ok(())
+    }
+
+    pub fn get_id(&self, name: String) -> Option<PlayerId> {
+        self.name_to_id.get(&name).cloned()
     }
 
     pub fn update_score(&mut self, contractors: Contractors, score: i16) {
         match contractors {
-            Contractors::Solo(contractor_name) => {
-                for (name, p) in self.players.iter_mut() {
-                    if name == &contractor_name {
-                        p.score += score;
+            Contractors::Solo(PlayerId(idx)) => {
+                for (i, player) in self.players.iter_mut().enumerate() {
+                    if i == idx {
+                        player.score += score;
                     } else {
-                        p.score -= score / 3;
+                        player.score -= score / 3;
                     }
                 }
             }
-            Contractors::Team(contractor_name1, contractor_name2) => {
+            Contractors::Team(PlayerId(idx_1), PlayerId(idx_2)) => {
                 let (contractors, others): (Vec<_>, Vec<_>) =
-                    self.players.iter_mut().map(|(_, p)| p).partition(|p| {
-                        ((**p).name == contractor_name1) | ((**p).name == contractor_name2)
+                    self.players.iter_mut().enumerate().partition_map(|(i, p)| {
+                        if (i == idx_1) | (i == idx_2) {
+                            Either::Left(p)
+                        } else {
+                            Either::Right(p)
+                        }
                     });
 
                 for (contractor, other) in contractors.into_iter().zip(others) {
@@ -52,6 +90,7 @@ impl Players {
                     other.score -= score;
                 }
             }
+            Contractors::Other => todo!(),
         }
     }
 }
@@ -65,21 +104,23 @@ mod tests {
     #[test]
     fn test_players() {
         let gamemodes = select_rules(GameRules::Dutch);
-        let a = Player::new("A".to_string());
-        let b = Player::new("B".to_string());
-        let c = Player::new("C".to_string());
-        let d = Player::new("D".to_string());
-        let mut players = Players::new([a, b, c, d]);
-
+        let names = ["A", "B", "C", "D"];
+        let mut players = Players::new();
+        for name in names {
+            players.add_player(name.to_string()).unwrap();
+        }
         let tricks = 8;
 
         let score = gamemodes[0].get_score(tricks);
+        let contractors = Contractors::Team(
+            players.get_id("A".to_string()).unwrap(),
+            players.get_id("B".to_string()).unwrap(),
+        );
+        players.update_score(contractors, score);
 
-        players.update_score(Contractors::Team("A", "B"), score);
-
-        assert_eq!(players.players.get("A").unwrap().score, 2);
-        assert_eq!(players.players.get("B").unwrap().score, 2);
-        assert_eq!(players.players.get("C").unwrap().score, -2);
-        assert_eq!(players.players.get("D").unwrap().score, -2);
+        assert_eq!(players.players[0].score, 2);
+        assert_eq!(players.players[1].score, 2);
+        assert_eq!(players.players[2].score, -2);
+        assert_eq!(players.players[3].score, -2);
     }
 }

@@ -17,29 +17,17 @@ impl Emballage {
     }
 }
 
-#[derive(Debug)]
-pub struct EmballageHand {
-    pub bid: i16,
-    rules: Emballage,
-}
-
-impl EmballageHand {
-    pub fn new(bid: i16, rules: Emballage) -> Self {
-        Self { bid, rules }
-    }
-}
-
-impl Score for EmballageHand {
+impl Score for Emballage {
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
         let capot = tricks == TOTAL_TRICKS;
 
-        let suppl_tricks = tricks - self.bid;
+        let suppl_tricks = tricks - self.tricks_to_win;
         let mut points =
-            self.rules.min_points + suppl_tricks.abs() * self.rules.points_per_suppl_trick;
+            self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
 
         let result = match suppl_tricks {
             0.. if capot => {
-                points -= self.rules.points_per_suppl_trick;
+                points -= self.points_per_suppl_trick;
                 GameResult::Capot
             }
             0.. => GameResult::Win,
@@ -48,28 +36,28 @@ impl Score for EmballageHand {
 
         (points, result)
     }
+    
+    fn min_tricks(&self) -> i16 {
+        self.tricks_to_win
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const RULES: Emballage = Emballage {
+    const EMBALLAGE: Emballage = Emballage {
         tricks_to_win: 8,
         min_points: 2,
         points_per_suppl_trick: 1,
     };
-
-    fn emballage(bid: i16) -> EmballageHand {
-        EmballageHand { bid, rules: RULES }
-    }
 
     #[test]
     fn test_emballage_win() {
         let tricks = 8;
         let expected_score = 2;
 
-        assert_eq!(expected_score, emballage(8).get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
     }
 
     #[test]
@@ -77,7 +65,7 @@ mod tests {
         let tricks = 6;
         let expected_score = -8;
 
-        assert_eq!(expected_score, emballage(8).get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
     }
 
     #[test]
@@ -85,14 +73,6 @@ mod tests {
         let tricks = 13;
         let expected_score = 12;
 
-        assert_eq!(expected_score, emballage(8).get_score(tricks));
-    }
-
-    #[test]
-    fn test_with_bid() {
-        let tricks = 10;
-        let expected_score = 3;
-
-        assert_eq!(expected_score, emballage(9).get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
     }
 }

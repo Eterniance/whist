@@ -18,6 +18,10 @@ impl Score for Picolo {
         }
         (self.min_points, GameResult::Lose)
     }
+
+    fn min_tricks(&self) -> i16 {
+        1
+    }
 }
 
 #[cfg(test)]
