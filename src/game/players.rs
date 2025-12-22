@@ -2,12 +2,21 @@ use std::collections::HashMap;
 
 use itertools::{Either, Itertools};
 
+use crate::game::rules::ContractorsKind;
+
 use super::GameError;
 
+#[derive(Debug)]
 pub enum Contractors {
     Solo(PlayerId),
     Team(PlayerId, PlayerId),
     Other,
+}
+
+impl PartialEq<ContractorsKind> for Contractors {
+    fn eq(&self, other: &ContractorsKind) -> bool {
+        other == self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -4,6 +4,7 @@ use super::{
     rules::{Contract, ContractorsKind},
 };
 
+#[derive(Debug)]
 pub struct Hand<'hand> {
     pub contract: &'hand Contract,
     pub contractors: Contractors,
@@ -53,16 +54,12 @@ impl<'hand> HandBuilder<'hand> {
     }
 
     pub fn set_contractors(&mut self, c: Contractors) -> Result<(), GameError> {
-        match (&self.contract.contractors_kind, &c) {
-            (ContractorsKind::Solo, Contractors::Solo(_)) => {}
-            (ContractorsKind::Team, Contractors::Team(_, _)) => {}
-            (ContractorsKind::Other, Contractors::Other) => {}
-            _ => {
-                return Err(GameError::HandBuildError(
-                    "Contractors type does not match".to_string(),
-                ));
-            }
+        if self.contract.contractors_kind != c {
+            return Err(GameError::HandBuildError(
+                "Contractors type does not match".to_string(),
+            ));
         }
+
         self.contractors = Some(c);
         Ok(())
     }
@@ -109,7 +106,7 @@ mod tests {
     #[test]
     fn build_hand() {
         let scorables = select_rules(GameRules::Dutch);
-        let emballage: &Contract = &scorables[0];
+        let emballage = &scorables[0];
 
         let mut builder = HandBuilder::new(emballage);
 
@@ -147,5 +144,69 @@ mod tests {
         }
 
         assert_eq!(hand.bid, Some(bid));
+    }
+
+    #[test]
+    fn build_hand_picolo() {
+        let scorables = select_rules(GameRules::French);
+        let picolo = &scorables[2];
+
+        let mut builder = HandBuilder::new(picolo);
+
+        assert!(matches!(
+            builder.next_request(),
+            InputRequest::ContractorsSolo
+        ));
+
+        let player = PlayerId::new(0);
+        builder
+            .set_contractors(Contractors::Solo(player.clone()))
+            .unwrap();
+
+        let bid = 4;
+        builder.set_bid(bid).unwrap();
+
+        assert!(builder.bid.is_none());
+
+        assert!(matches!(builder.next_request(), InputRequest::Done));
+
+        let hand = builder.build().unwrap();
+
+        match hand.contractors {
+            Contractors::Solo(p) => assert_eq!(p, player),
+            _ => panic!("Expected Contractors::Solo"),
+        }
+
+        assert!(hand.bid.is_none());
+    }
+
+    #[test]
+    fn build_hand_failures() {
+        let scorables = select_rules(GameRules::Dutch);
+        let emballage= &scorables[0]; // Emballage: Team + bid required
+
+        let builder = HandBuilder::new(emballage);
+        let err = builder.build().unwrap_err();
+        assert!(matches!(err, GameError::HandBuildError(_)));
+
+        let mut builder = HandBuilder::new(emballage);
+
+        let solo_player = PlayerId::new(0);
+        let err = builder
+            .set_contractors(Contractors::Solo(solo_player))
+            .unwrap_err();
+
+        assert!(matches!(err, GameError::HandBuildError(_)));
+
+        let mut builder = HandBuilder::new(emballage);
+
+        let p1 = PlayerId::new(0);
+        let p2 = PlayerId::new(1);
+        builder.set_contractors(Contractors::Team(p1, p2)).unwrap();
+
+        assert!(matches!(builder.next_request(), InputRequest::Bid { .. }));
+
+        let err = builder.build().unwrap_err();
+        assert!(matches!(err, GameError::HandBuildError(_)));
     }
 }
