@@ -1,6 +1,6 @@
 use crate::gamemodes::*;
 
-enum ContractorsKind {
+pub enum ContractorsKind {
     Solo,
     Team,
     Other,
@@ -8,13 +8,17 @@ enum ContractorsKind {
 
 pub struct Contract {
     pub max_bid: Option<i16>,
-    contractors_type: ContractorsKind,
+    pub contractors_kind: ContractorsKind,
     gamemode: Box<dyn Score>,
 }
 
 impl Contract {
     pub fn get_score(&self, tricks: i16) -> i16 {
         self.gamemode.get_score(tricks)
+    }
+    
+    pub fn min_tricks(&self) -> i16 {
+        self.gamemode.min_tricks()
     }
 }
 
@@ -31,7 +35,7 @@ pub fn select_rules(rules: GameRules) -> Vec<Contract> {
             let hand_1 = Contract {
                 max_bid: Some(TOTAL_TRICKS),
                 gamemode: Box::new(rules),
-                contractors_type: ContractorsKind::Team,
+                contractors_kind: ContractorsKind::Team,
             };
             let max_tricks_allowed = 8;
             let seul = Seul::new(6, 6, 3, max_tricks_allowed);
@@ -39,7 +43,7 @@ pub fn select_rules(rules: GameRules) -> Vec<Contract> {
             let hand_2 = Contract {
                 max_bid: Some(max_tricks_allowed),
                 gamemode: Box::new(seul),
-                contractors_type: ContractorsKind::Solo,
+                contractors_kind: ContractorsKind::Solo,
             };
 
             vec![hand_1, hand_2]

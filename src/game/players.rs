@@ -13,6 +13,12 @@ pub enum Contractors {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlayerId(usize);
 
+impl PlayerId {
+    pub fn new(idx: usize) -> Self {
+        Self(idx)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Player {
     pub name: String,
@@ -30,6 +36,7 @@ impl Player {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Players {
     players: Vec<Player>,
     next_idx: usize,
@@ -37,16 +44,6 @@ pub struct Players {
 }
 
 impl Players {
-    pub fn new() -> Self {
-        let players = Vec::new();
-        let name_to_id = HashMap::new();
-        Self {
-            players,
-            next_idx: 0,
-            name_to_id,
-        }
-    }
-
     pub fn add_player(&mut self, name: String) -> Result<(), GameError> {
         let player = Player::new(name.clone(), self.next_idx);
         if self.players.len() >= 4 {
@@ -105,7 +102,7 @@ mod tests {
     fn test_players() {
         let gamemodes = select_rules(GameRules::Dutch);
         let names = ["A", "B", "C", "D"];
-        let mut players = Players::new();
+        let mut players = Players::default();
         for name in names {
             players.add_player(name.to_string()).unwrap();
         }

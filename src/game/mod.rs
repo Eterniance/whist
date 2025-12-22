@@ -1,5 +1,6 @@
 pub mod rules;
-pub mod game;
+pub mod players;
+pub mod hand;
 
 
 use thiserror::Error;
@@ -10,4 +11,6 @@ pub enum GameError {
     TooManyPlayer,
     #[error("This player name already exists")]
     PlayerAlreadyExists,
+    #[error("Something went wrong while building hand: {0}")]
+    HandBuildError(String),
 }
