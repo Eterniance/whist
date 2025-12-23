@@ -1,4 +1,4 @@
-use super::*;
+use super::{Debug, Score, GameResult};
 
 #[derive(Debug)]
 pub struct Seul {
@@ -9,7 +9,8 @@ pub struct Seul {
 }
 
 impl Seul {
-    pub fn new(
+    #[must_use] 
+    pub const fn new(
         tricks_to_win: i16,
         min_points: i16,
         points_per_suppl_trick: i16,
@@ -28,16 +29,13 @@ impl Score for Seul {
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
         let suppl_tricks = tricks - self.tricks_to_win;
 
-        match suppl_tricks {
-            0.. => {
-                let points = self.min_points
-                    + suppl_tricks.clamp(0, self.max_tricks_allowed) * self.points_per_suppl_trick;
-                (points, GameResult::Win)
-            }
-            _ => {
-                let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
-                (points, GameResult::Lose)
-            }
+        if let 0.. = suppl_tricks {
+            let points = self.min_points
+                + suppl_tricks.clamp(0, self.max_tricks_allowed) * self.points_per_suppl_trick;
+            (points, GameResult::Win)
+        } else {
+            let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
+            (points, GameResult::Lose)
         }
     }
     

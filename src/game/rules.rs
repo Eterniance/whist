@@ -1,4 +1,4 @@
-use crate::{game::players::Contractors, gamemodes::*};
+use crate::{game::players::Contractors, gamemodes::{Score, Emballage, TOTAL_TRICKS, Seul, Picolo}};
 
 #[derive(Debug)]
 pub enum ContractorsKind {
@@ -11,9 +11,9 @@ impl PartialEq<Contractors> for ContractorsKind {
     fn eq(&self, other: &Contractors) -> bool {
         matches!(
             (self, other),
-            (ContractorsKind::Solo, Contractors::Solo(_))
-                | (ContractorsKind::Team, Contractors::Team(_, _))
-                | (ContractorsKind::Other, Contractors::Other)
+            (Self::Solo, Contractors::Solo(_))
+                | (Self::Team, Contractors::Team(_, _))
+                | (Self::Other, Contractors::Other)
         )
     }
 }
@@ -22,14 +22,11 @@ impl PartialEq<Contractors> for ContractorsKind {
 pub struct Contract {
     pub max_bid: Option<i16>,
     pub contractors_kind: ContractorsKind,
-    gamemode: Box<dyn Score>,
+    pub gamemode: Box<dyn Score>,
 }
 
 impl Contract {
-    pub fn get_score(&self, tricks: i16) -> i16 {
-        self.gamemode.get_score(tricks)
-    }
-
+    #[must_use] 
     pub fn min_tricks(&self) -> i16 {
         self.gamemode.min_tricks()
     }
@@ -40,7 +37,8 @@ pub enum GameRules {
     French,
 }
 
-pub fn select_rules(rules: GameRules) -> Vec<Contract> {
+#[must_use] 
+pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
     match rules {
         GameRules::Dutch => {
             let tricks_to_win = 8;
@@ -97,7 +95,7 @@ mod tests {
 
     #[test]
     fn dutch() {
-        let scorables = select_rules(GameRules::Dutch);
+        let scorables = select_rules(&GameRules::Dutch);
         let emballage = &scorables[0];
         let emballage_score = emballage.gamemode.get_score(8);
 

@@ -16,7 +16,7 @@ pub enum GameResult {
     Capot,
 }
 
-pub trait Score: Debug {
+pub trait Score: Debug + Send + Sync {
     fn min_tricks(&self) -> i16;
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult);
 

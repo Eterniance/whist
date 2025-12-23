@@ -3,12 +3,48 @@ use super::{
     players::Contractors,
     rules::{Contract, ContractorsKind},
 };
+use crate::{game::players::Players, gamemodes::Score};
+use async_trait::async_trait;
+use std::ops::RangeInclusive;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum InputError {}
+
+#[async_trait(?Send)]
+pub trait Requester {
+    async fn ask_bid(&mut self, range: RangeInclusive<i16>) -> i16;
+    async fn ask_names(&mut self) -> Vec<String>;
+    async fn pick_names(
+        &mut self,
+        names_list: Vec<String>,
+        names_number: usize,
+    ) -> Result<Vec<String>, InputError>;
+
+    async fn pick_name(&mut self, names_list: Vec<String>) -> Option<String> {
+        self.pick_names(names_list, 1).await.ok()?.first().cloned()
+    }
+}
 
 #[derive(Debug)]
 pub struct Hand<'hand> {
-    pub contract: &'hand Contract,
-    pub contractors: Contractors,
-    pub bid: Option<i16>,
+    contract: &'hand Contract,
+    contractors: Contractors,
+    bid: Option<i16>,
+}
+
+impl Score for Hand<'_> {
+    fn min_tricks(&self) -> i16 {
+        self.contract.min_tricks()
+    }
+
+    fn calculate_score(&self, tricks: i16) -> (i16, crate::gamemodes::GameResult) {
+        let adjusted_tricks = self.bid.map_or(tricks, |bid| {
+            let diff = bid - self.min_tricks();
+            tricks - diff
+        });
+        self.contract.gamemode.calculate_score(adjusted_tricks)
+    }
 }
 
 #[derive(Debug)]
@@ -18,6 +54,7 @@ pub enum InputRequest {
     ContractorsOther,
     Bid { min: i16, max: i16 },
     Done,
+    Cancel,
 }
 
 pub struct HandBuilder<'hand> {
@@ -27,7 +64,8 @@ pub struct HandBuilder<'hand> {
 }
 
 impl<'hand> HandBuilder<'hand> {
-    pub fn new(contract: &'hand Contract) -> Self {
+    #[must_use] 
+    pub const fn new(contract: &'hand Contract) -> Self {
         Self {
             contract,
             contractors: None,
@@ -35,6 +73,7 @@ impl<'hand> HandBuilder<'hand> {
         }
     }
 
+    #[must_use] 
     pub fn next_request(&self) -> InputRequest {
         if self.contractors.is_none() {
             return match self.contract.contractors_kind {
@@ -48,11 +87,19 @@ impl<'hand> HandBuilder<'hand> {
         {
             let min = self.contract.min_tricks();
             return InputRequest::Bid { min, max };
-        };
-
+        }
         InputRequest::Done
     }
 
+    /// Sets the contractors for the current contract.
+    ///
+    /// The provided contractors must match the contractors type expected by the
+    /// current contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the contractors type does not match the contract
+    /// configuration.
     pub fn set_contractors(&mut self, c: Contractors) -> Result<(), GameError> {
         if self.contract.contractors_kind != c {
             return Err(GameError::HandBuildError(
@@ -64,9 +111,17 @@ impl<'hand> HandBuilder<'hand> {
         Ok(())
     }
 
+    /// Sets the bid for the current contract.
+    ///
+    /// The bid must be within the range allowed by the contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bid is outside the valid range defined by the
+    /// contract.
     pub fn set_bid(&mut self, bid: i16) -> Result<(), GameError> {
         if let Some(max_bid) = self.contract.max_bid {
-            if bid < self.contract.min_tricks() && bid > max_bid {
+            if !(self.contract.min_tricks()..max_bid).contains(&bid) {
                 return Err(GameError::HandBuildError("Bid out of range".to_string()));
             }
             self.bid = Some(bid);
@@ -76,18 +131,77 @@ impl<'hand> HandBuilder<'hand> {
         Ok(())
     }
 
+    /// Builds the hand from the collected contract parameters.
+    ///
+    /// All required components must be set before building the hand.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the contractors are missing, or if a bid is required
+    /// by the contract but has not been set.
     pub fn build(self) -> Result<Hand<'hand>, GameError> {
         let contractors = self
             .contractors
-            .ok_or(GameError::HandBuildError("No contractors".to_string()))?;
+            .ok_or_else(|| GameError::HandBuildError("No contractors".to_string()))?;
         if self.contract.max_bid.is_some() && self.bid.is_none() {
             return Err(GameError::HandBuildError("Missing bid".to_string()));
-        };
+        }
         Ok(Hand {
             contract: self.contract,
             contractors,
             bid: self.bid,
         })
+    }
+}
+
+/// Interactively builds a `Hand` by requesting missing inputs from a requester.
+///
+/// The function drives a `HandBuilder` until all required information
+/// (contractors, bid) is provided, using the given `Requester` to obtain user
+/// input asynchronously.
+///
+/// # Errors
+///
+/// Returns an error if an invalid contractors selection or bid is provided,
+/// or if the requester fails when selecting multiple names.
+///
+/// # Panics
+///
+/// Panics if a selected player name cannot be resolved to a player ID,
+/// which assumes that `players` has been properly initialized and kept
+/// consistent with the requester.
+#[allow(clippy::future_not_send)]
+pub async fn build_hand<'a, P: Requester>(
+    contract: &'a Contract,
+    players: &'a Players,
+    mut requester: P,
+) -> Result<Hand<'a>, GameError> {
+    let mut b = HandBuilder::new(contract);
+
+    loop {
+        match b.next_request() {
+            InputRequest::ContractorsSolo => {
+                let list = players.names();
+                if let Some(name) = requester.pick_name(list).await {
+                    let id = players.get_id(&name).expect("Players is initialized");
+                    b.set_contractors(Contractors::Solo(id))?;
+                }
+            }
+            InputRequest::ContractorsTeam => {
+                let list = players.names();
+                let names = requester.pick_names(list, 2).await?;
+                let id1 = players.get_id(&names[0]).expect("Players is initialized");
+                let id2 = players.get_id(&names[1]).expect("Players is initialized");
+                b.set_contractors(Contractors::Team(id1, id2))?;
+            }
+            InputRequest::ContractorsOther => todo!(),
+            InputRequest::Bid { min, max } => {
+                let bid = requester.ask_bid(min..=max).await;
+                b.set_bid(bid)?;
+            }
+            InputRequest::Done => todo!(),
+            InputRequest::Cancel => todo!(),
+        }
     }
 }
 
@@ -105,7 +219,7 @@ mod tests {
 
     #[test]
     fn build_hand() {
-        let scorables = select_rules(GameRules::Dutch);
+        let scorables = select_rules(&GameRules::Dutch);
         let emballage = &scorables[0];
 
         let mut builder = HandBuilder::new(emballage);
@@ -121,7 +235,7 @@ mod tests {
 
         let (min, max) = match builder.next_request() {
             InputRequest::Bid { min, max } => (min, max),
-            other => panic!("Expected Bid request, got {:?}", other),
+            other => panic!("Expected Bid request, got {other:?}"),
         };
         assert_eq!(min, 8);
         assert_eq!(max, TOTAL_TRICKS);
@@ -148,7 +262,7 @@ mod tests {
 
     #[test]
     fn build_hand_picolo() {
-        let scorables = select_rules(GameRules::French);
+        let scorables = select_rules(&GameRules::French);
         let picolo = &scorables[2];
 
         let mut builder = HandBuilder::new(picolo);
@@ -182,8 +296,8 @@ mod tests {
 
     #[test]
     fn build_hand_failures() {
-        let scorables = select_rules(GameRules::Dutch);
-        let emballage= &scorables[0]; // Emballage: Team + bid required
+        let scorables = select_rules(&GameRules::Dutch);
+        let emballage = &scorables[0]; // Emballage: Team + bid required
 
         let builder = HandBuilder::new(emballage);
         let err = builder.build().unwrap_err();

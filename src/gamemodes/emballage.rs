@@ -1,4 +1,4 @@
-use super::*;
+use super::{Debug, Score, GameResult, TOTAL_TRICKS};
 
 #[derive(Debug)]
 pub struct Emballage {
@@ -8,7 +8,8 @@ pub struct Emballage {
 }
 
 impl Emballage {
-    pub fn new(tricks_to_win: i16, min_points: i16, points_per_suppl_trick: i16) -> Self {
+    #[must_use] 
+    pub const fn new(tricks_to_win: i16, min_points: i16, points_per_suppl_trick: i16) -> Self {
         Self {
             tricks_to_win,
             min_points,

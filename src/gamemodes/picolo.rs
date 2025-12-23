@@ -1,4 +1,4 @@
-use super::*;
+use super::{Debug, Score, GameResult};
 
 #[derive(Debug)]
 pub struct Picolo {
@@ -6,7 +6,8 @@ pub struct Picolo {
 }
 
 impl Picolo {
-    pub fn new(min_points: i16) -> Self {
+    #[must_use] 
+    pub const fn new(min_points: i16) -> Self {
         Self { min_points }
     }
 }
