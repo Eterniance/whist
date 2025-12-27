@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use itertools::{Either, Itertools};
 
-use crate::game::rules::ContractorsKind;
+use crate::game::{hand::Requester, rules::ContractorsKind};
 
 use super::GameError;
 
@@ -23,7 +23,7 @@ impl PartialEq<ContractorsKind> for Contractors {
 pub struct PlayerId(usize);
 
 impl PlayerId {
-    #[must_use] 
+    #[must_use]
     pub const fn new(idx: usize) -> Self {
         Self(idx)
     }
@@ -54,36 +54,44 @@ pub struct Players {
 }
 
 impl Players {
+    pub fn from_list(names: &[&str; 4]) -> Result<Self, GameError> {
+        let mut players = Self::default();
+        for n in names {
+            players.add_player(n.to_string())?;
+        }
+        Ok(players)
+    }
+
     /// Adds a new player to the game.
     ///
     /// A player is created with the given name and assigned a unique internal
-    /// identifier. The game must contain four players.
+    /// identifier. The game must contain four players. Returns the number of players.
     ///
     /// # Errors
     ///
     /// Returns an `GameError` if the game already has four players or if the player
     /// already exists.
-    pub fn add_player(&mut self, name: String) -> Result<(), GameError> {
+    pub fn add_player(&mut self, name: String) -> Result<usize, GameError> {
         let player = Player::new(name.clone(), self.next_idx);
         if self.list.len() >= 4 {
             return Err(GameError::TooManyPlayer);
-        } else if self.list.contains(&player) {
+        } else if self.name_to_id.keys().contains(&name) {
             return Err(GameError::PlayerAlreadyExists);
         }
         self.name_to_id.insert(name, PlayerId(self.next_idx));
         self.next_idx += 1;
         self.list.push(player);
-        Ok(())
+        Ok(self.list.len())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_id(&self, name: &str) -> Option<PlayerId> {
         self.name_to_id.get(name).cloned()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn names(&self) -> Vec<String> {
-        self.name_to_id.keys().cloned().collect()
+        self.list.iter().map(|p| p.name.clone()).collect()
     }
 
     pub fn update_score(&mut self, contractors: &Contractors, score: i16) {
@@ -115,6 +123,28 @@ impl Players {
             Contractors::Other => todo!(),
         }
     }
+}
+
+pub async fn fill_players<R, F>(mut players: Players, req: &mut R, on_duplicate: F) -> Players
+where
+    R: Requester,
+    F: Fn(),
+{
+    loop {
+        let Ok(name) = req.ask_name().await else {
+            continue;
+        };
+        match players.add_player(name) {
+            Ok(4) => {
+                break;
+            }
+            Err(GameError::PlayerAlreadyExists) => {
+                on_duplicate();
+            }
+            _ => {}
+        }
+    }
+    players
 }
 
 #[cfg(test)]

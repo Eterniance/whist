@@ -1,5 +1,5 @@
 [package]
-name = "whist-point-calc"
+name = "whist"
 version = "0.1.0"
 edition = "2024"
 
@@ -12,3 +12,4 @@ thiserror = "2"
 all = "warn"
 pedantic = "warn"
 nursery = "warn"
+# future_not_send = {level = "allow", priority = -1}

@@ -1,4 +1,4 @@
-use super::{Debug, Score, GameResult};
+use super::{Debug, GameResult, Score};
 
 #[derive(Debug)]
 pub struct Seul {
@@ -9,7 +9,7 @@ pub struct Seul {
 }
 
 impl Seul {
-    #[must_use] 
+    #[must_use]
     pub const fn new(
         tricks_to_win: i16,
         min_points: i16,
@@ -27,18 +27,17 @@ impl Seul {
 
 impl Score for Seul {
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
-        let suppl_tricks = tricks - self.tricks_to_win;
+        let suppl_tricks = tricks.clamp(0, self.max_tricks_allowed) - self.tricks_to_win;
 
         if let 0.. = suppl_tricks {
-            let points = self.min_points
-                + suppl_tricks.clamp(0, self.max_tricks_allowed) * self.points_per_suppl_trick;
+            let points = self.min_points + suppl_tricks * self.points_per_suppl_trick;
             (points, GameResult::Win)
         } else {
             let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
             (points, GameResult::Lose)
         }
     }
-    
+
     fn min_tricks(&self) -> i16 {
         self.tricks_to_win
     }
@@ -67,6 +66,14 @@ mod tests {
     fn test_seul_lose() {
         let tricks = 3;
         let expected_score = -30;
+
+        assert_eq!(expected_score, SEUL.get_score(tricks));
+    }
+
+    #[test]
+    fn test_seul_win_too_much() {
+        let tricks = 9;
+        let expected_score = 12;
 
         assert_eq!(expected_score, SEUL.get_score(tricks));
     }

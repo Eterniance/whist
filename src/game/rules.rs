@@ -1,4 +1,7 @@
-use crate::{game::players::Contractors, gamemodes::{Score, Emballage, TOTAL_TRICKS, Seul, Picolo}};
+use crate::{
+    game::players::Contractors,
+    gamemodes::{Emballage, Picolo, Score, Seul, TOTAL_TRICKS},
+};
 
 #[derive(Debug)]
 pub enum ContractorsKind {
@@ -26,7 +29,7 @@ pub struct Contract {
 }
 
 impl Contract {
-    #[must_use] 
+    #[must_use]
     pub fn min_tricks(&self) -> i16 {
         self.gamemode.min_tricks()
     }
@@ -37,7 +40,7 @@ pub enum GameRules {
     French,
 }
 
-#[must_use] 
+#[must_use]
 pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
     match rules {
         GameRules::Dutch => {

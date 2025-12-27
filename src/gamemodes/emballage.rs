@@ -1,4 +1,4 @@
-use super::{Debug, Score, GameResult, TOTAL_TRICKS};
+use super::{Debug, GameResult, Score, TOTAL_TRICKS};
 
 #[derive(Debug)]
 pub struct Emballage {
@@ -8,7 +8,7 @@ pub struct Emballage {
 }
 
 impl Emballage {
-    #[must_use] 
+    #[must_use]
     pub const fn new(tricks_to_win: i16, min_points: i16, points_per_suppl_trick: i16) -> Self {
         Self {
             tricks_to_win,
@@ -23,8 +23,7 @@ impl Score for Emballage {
         let capot = tricks == TOTAL_TRICKS;
 
         let suppl_tricks = tricks - self.tricks_to_win;
-        let mut points =
-            self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
+        let mut points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
 
         let result = match suppl_tricks {
             0.. if capot => {
@@ -37,7 +36,7 @@ impl Score for Emballage {
 
         (points, result)
     }
-    
+
     fn min_tricks(&self) -> i16 {
         self.tricks_to_win
     }

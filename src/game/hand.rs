@@ -9,27 +9,30 @@ use std::ops::RangeInclusive;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum InputError {}
+pub enum InputError {
+    #[error("invalid input: {0}")]
+    InvalidInput(String),
+}
 
 #[async_trait(?Send)]
 pub trait Requester {
-    async fn ask_bid(&mut self, range: RangeInclusive<i16>) -> i16;
-    async fn ask_names(&mut self) -> Vec<String>;
+    async fn ask_bid(&self, range: RangeInclusive<i16>) -> Result<i16, InputError>;
+    async fn ask_name(&self) -> Result<String, InputError>;
     async fn pick_names(
-        &mut self,
+        &self,
         names_list: Vec<String>,
         names_number: usize,
     ) -> Result<Vec<String>, InputError>;
 
-    async fn pick_name(&mut self, names_list: Vec<String>) -> Option<String> {
+    async fn pick_name(&self, names_list: Vec<String>) -> Option<String> {
         self.pick_names(names_list, 1).await.ok()?.first().cloned()
     }
 }
 
 #[derive(Debug)]
 pub struct Hand<'hand> {
+    pub contractors: Contractors,
     contract: &'hand Contract,
-    contractors: Contractors,
     bid: Option<i16>,
 }
 
@@ -39,6 +42,10 @@ impl Score for Hand<'_> {
     }
 
     fn calculate_score(&self, tricks: i16) -> (i16, crate::gamemodes::GameResult) {
+        let tricks = self
+            .contract
+            .max_bid
+            .map_or(tricks, |max| tricks.clamp(0, max));
         let adjusted_tricks = self.bid.map_or(tricks, |bid| {
             let diff = bid - self.min_tricks();
             tricks - diff
@@ -64,7 +71,7 @@ pub struct HandBuilder<'hand> {
 }
 
 impl<'hand> HandBuilder<'hand> {
-    #[must_use] 
+    #[must_use]
     pub const fn new(contract: &'hand Contract) -> Self {
         Self {
             contract,
@@ -73,7 +80,7 @@ impl<'hand> HandBuilder<'hand> {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn next_request(&self) -> InputRequest {
         if self.contractors.is_none() {
             return match self.contract.contractors_kind {
@@ -121,7 +128,7 @@ impl<'hand> HandBuilder<'hand> {
     /// contract.
     pub fn set_bid(&mut self, bid: i16) -> Result<(), GameError> {
         if let Some(max_bid) = self.contract.max_bid {
-            if !(self.contract.min_tricks()..max_bid).contains(&bid) {
+            if !(self.contract.min_tricks()..=max_bid).contains(&bid) {
                 return Err(GameError::HandBuildError("Bid out of range".to_string()));
             }
             self.bid = Some(bid);
@@ -170,11 +177,10 @@ impl<'hand> HandBuilder<'hand> {
 /// Panics if a selected player name cannot be resolved to a player ID,
 /// which assumes that `players` has been properly initialized and kept
 /// consistent with the requester.
-#[allow(clippy::future_not_send)]
-pub async fn build_hand<'a, P: Requester>(
+pub async fn build_hand<'a, R: Requester + Sync + Send>(
     contract: &'a Contract,
     players: &'a Players,
-    mut requester: P,
+    requester: &'a R,
 ) -> Result<Hand<'a>, GameError> {
     let mut b = HandBuilder::new(contract);
 
@@ -196,10 +202,13 @@ pub async fn build_hand<'a, P: Requester>(
             }
             InputRequest::ContractorsOther => todo!(),
             InputRequest::Bid { min, max } => {
-                let bid = requester.ask_bid(min..=max).await;
+                let bid = requester.ask_bid(min..=max).await?;
                 b.set_bid(bid)?;
             }
-            InputRequest::Done => todo!(),
+            InputRequest::Done => {
+                let hand = b.build()?;
+                return Ok(hand);
+            }
             InputRequest::Cancel => todo!(),
         }
     }

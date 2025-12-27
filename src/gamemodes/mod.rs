@@ -1,12 +1,12 @@
 #![allow(unused)]
 
 use std::fmt::Debug;
-pub mod emballage;
-pub use emballage::{Emballage};
-pub mod picolo;
-pub use picolo::Picolo;
-pub mod seul;
-pub use seul::Seul;
+pub(crate) mod emballage;
+pub(crate) use emballage::Emballage;
+pub(crate) mod picolo;
+pub(crate) use picolo::Picolo;
+pub(crate) mod seul;
+pub(crate) use seul::Seul;
 
 pub const TOTAL_TRICKS: i16 = 13;
 
