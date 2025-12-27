@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use crate::{
     game::players::Contractors,
     gamemodes::{Emballage, Picolo, Score, Seul, TOTAL_TRICKS},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ContractorsKind {
     Solo,
     Team,
@@ -21,11 +23,11 @@ impl PartialEq<Contractors> for ContractorsKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Contract {
     pub max_bid: Option<i16>,
     pub contractors_kind: ContractorsKind,
-    pub gamemode: Box<dyn Score>,
+    pub gamemode: Arc<dyn Score>,
 }
 
 impl Contract {
@@ -48,7 +50,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let rules = Emballage::new(tricks_to_win, 2, 1);
             let emballage = Contract {
                 max_bid: Some(TOTAL_TRICKS),
-                gamemode: Box::new(rules),
+                gamemode: Arc::new(rules),
                 contractors_kind: ContractorsKind::Team,
             };
             let max_tricks_allowed = 8;
@@ -56,7 +58,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             let seul = Contract {
                 max_bid: Some(max_tricks_allowed),
-                gamemode: Box::new(rules),
+                gamemode: Arc::new(rules),
                 contractors_kind: ContractorsKind::Solo,
             };
 
@@ -67,7 +69,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let rules = Emballage::new(tricks_to_win, 2, 1);
             let emballage = Contract {
                 max_bid: Some(TOTAL_TRICKS),
-                gamemode: Box::new(rules),
+                gamemode: Arc::new(rules),
                 contractors_kind: ContractorsKind::Team,
             };
             let max_tricks_allowed = 8;
@@ -75,7 +77,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             let seul = Contract {
                 max_bid: Some(max_tricks_allowed),
-                gamemode: Box::new(rules),
+                gamemode: Arc::new(rules),
                 contractors_kind: ContractorsKind::Solo,
             };
 
@@ -83,7 +85,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             let picolo = Contract {
                 max_bid: None,
-                gamemode: Box::new(rules),
+                gamemode: Arc::new(rules),
                 contractors_kind: ContractorsKind::Solo,
             };
 

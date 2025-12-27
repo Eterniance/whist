@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{game::players::Players, gamemodes::Score};
 use async_trait::async_trait;
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, sync::Arc};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -14,7 +14,8 @@ pub enum InputError {
     InvalidInput(String),
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait Requester {
     async fn ask_bid(&self, range: RangeInclusive<i16>) -> Result<i16, InputError>;
     async fn ask_name(&self) -> Result<String, InputError>;
@@ -30,13 +31,13 @@ pub trait Requester {
 }
 
 #[derive(Debug)]
-pub struct Hand<'hand> {
+pub struct Hand {
     pub contractors: Contractors,
-    contract: &'hand Contract,
+    contract: Arc<Contract>,
     bid: Option<i16>,
 }
 
-impl Score for Hand<'_> {
+impl Score for Hand {
     fn min_tricks(&self) -> i16 {
         self.contract.min_tricks()
     }
@@ -64,15 +65,15 @@ pub enum InputRequest {
     Cancel,
 }
 
-pub struct HandBuilder<'hand> {
-    contract: &'hand Contract,
+pub struct HandBuilder {
+    contract: Arc<Contract>,
     contractors: Option<Contractors>,
     bid: Option<i16>,
 }
 
-impl<'hand> HandBuilder<'hand> {
+impl HandBuilder {
     #[must_use]
-    pub const fn new(contract: &'hand Contract) -> Self {
+    pub const fn new(contract: Arc<Contract>) -> Self {
         Self {
             contract,
             contractors: None,
@@ -146,7 +147,7 @@ impl<'hand> HandBuilder<'hand> {
     ///
     /// Returns an error if the contractors are missing, or if a bid is required
     /// by the contract but has not been set.
-    pub fn build(self) -> Result<Hand<'hand>, GameError> {
+    pub fn build(self) -> Result<Hand, GameError> {
         let contractors = self
             .contractors
             .ok_or_else(|| GameError::HandBuildError("No contractors".to_string()))?;
@@ -177,11 +178,11 @@ impl<'hand> HandBuilder<'hand> {
 /// Panics if a selected player name cannot be resolved to a player ID,
 /// which assumes that `players` has been properly initialized and kept
 /// consistent with the requester.
-pub async fn build_hand<'a, R: Requester + Sync + Send>(
-    contract: &'a Contract,
-    players: &'a Players,
-    requester: &'a R,
-) -> Result<Hand<'a>, GameError> {
+pub async fn build_hand<R: Requester + Sync + Send>(
+    contract: Arc<Contract>,
+    players: Arc<Players>,
+    requester: Arc<R>,
+) -> Result<Hand, GameError> {
     let mut b = HandBuilder::new(contract);
 
     loop {
@@ -228,8 +229,8 @@ mod tests {
 
     #[test]
     fn build_hand() {
-        let scorables = select_rules(&GameRules::Dutch);
-        let emballage = &scorables[0];
+        let scorables: Vec<_> = select_rules(&GameRules::Dutch);
+        let emballage = Arc::new(scorables[0].clone());
 
         let mut builder = HandBuilder::new(emballage);
 
@@ -272,7 +273,7 @@ mod tests {
     #[test]
     fn build_hand_picolo() {
         let scorables = select_rules(&GameRules::French);
-        let picolo = &scorables[2];
+        let picolo = Arc::new(scorables[2].clone());
 
         let mut builder = HandBuilder::new(picolo);
 
@@ -306,13 +307,13 @@ mod tests {
     #[test]
     fn build_hand_failures() {
         let scorables = select_rules(&GameRules::Dutch);
-        let emballage = &scorables[0]; // Emballage: Team + bid required
+        let emballage = Arc::new(scorables[0].clone());
 
-        let builder = HandBuilder::new(emballage);
+        let builder = HandBuilder::new(Arc::clone(&emballage));
         let err = builder.build().unwrap_err();
         assert!(matches!(err, GameError::HandBuildError(_)));
 
-        let mut builder = HandBuilder::new(emballage);
+        let mut builder = HandBuilder::new(Arc::clone(&emballage));
 
         let solo_player = PlayerId::new(0);
         let err = builder

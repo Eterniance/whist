@@ -29,7 +29,7 @@ impl PlayerId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Player {
     pub name: String,
     pub score: i16,
@@ -46,7 +46,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Players {
     list: Vec<Player>,
     next_idx: usize,
