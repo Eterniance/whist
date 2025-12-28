@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use itertools::{Either, Itertools};
+use serde::{Deserialize, Serialize};
 
 use crate::game::{hand::Requester, rules::ContractorsKind};
 
@@ -19,7 +20,7 @@ impl PartialEq<ContractorsKind> for Contractors {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlayerId(usize);
 
 impl PlayerId {
@@ -29,7 +30,7 @@ impl PlayerId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Player {
     pub name: String,
     pub score: i16,
@@ -46,9 +47,9 @@ impl Player {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Players {
-    list: Vec<Player>,
+    pub list: Vec<Player>,
     next_idx: usize,
     name_to_id: HashMap<String, PlayerId>,
 }
