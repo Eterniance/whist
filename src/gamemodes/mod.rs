@@ -45,3 +45,41 @@ pub trait Score: Debug {
         }
     }
 }
+
+macro_rules! score_enum {
+    ($enum:ident {
+        $ ( $variant:ident( $inner:ty ) ), + $(,)?
+    }) => {
+        impl Score for $enum {
+            fn min_tricks(&self) -> i16 {
+                match self {
+                    $(
+                        $enum::$variant(x) => x.min_tricks(),
+                    )+
+                }
+            }
+
+            fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
+                match self {
+                    $(
+                        $enum::$variant(x) => x.calculate_score(tricks),
+                    )+
+               }
+            }
+        }
+    };
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Gamemodes {
+    Emballage(Emballage),
+    Seul(Seul),
+    Picolo(Picolo),
+}
+
+score_enum!(Gamemodes{
+    Emballage(Emballage),
+    Seul(Seul),
+    Picolo(Picolo),
+});

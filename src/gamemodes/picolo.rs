@@ -1,6 +1,7 @@
 use super::{Debug, GameResult, Score};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Picolo {
     min_points: i16,
 }
@@ -27,6 +28,8 @@ impl Score for Picolo {
 
 #[cfg(test)]
 mod tests {
+    use crate::gamemodes::Gamemodes;
+
     use super::*;
 
     const PICOLO: Picolo = Picolo { min_points: 12 };
@@ -37,6 +40,7 @@ mod tests {
         let expected_score = 12;
 
         assert_eq!(expected_score, PICOLO.get_score(tricks));
+        assert_eq!(expected_score, Gamemodes::Picolo(PICOLO).get_score(tricks));
     }
 
     #[test]

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use itertools::{Either, Itertools};
-use serde::{Deserialize, Serialize};
 
 use crate::game::{hand::Requester, rules::ContractorsKind};
 
@@ -20,7 +19,8 @@ impl PartialEq<ContractorsKind> for Contractors {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PlayerId(usize);
 
 impl PlayerId {
@@ -30,7 +30,8 @@ impl PlayerId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Player {
     pub name: String,
     pub score: i16,
@@ -47,7 +48,8 @@ impl Player {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Players {
     pub list: Vec<Player>,
     next_idx: usize,
@@ -55,7 +57,16 @@ pub struct Players {
 }
 
 impl Players {
-    pub fn from_list(names: &[&str; 4]) -> Result<Self, GameError> {
+    /// Creates a `Players` collection from a fixed list of four player names.
+    ///
+    /// The provided values are converted to strings and added in order using the
+    /// standard validation rules.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if adding any player fails, for example if a name is
+    /// duplicated or if the maximum number of players is exceeded.
+    pub fn from_list(names: &[impl std::string::ToString; 4]) -> Result<Self, GameError> {
         let mut players = Self::default();
         for n in names {
             players.add_player(n.to_string())?;
@@ -151,6 +162,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::game::rules::{GameRules, select_rules};
+    use crate::gamemodes::Score;
 
     use super::*;
 

@@ -1,6 +1,7 @@
 use super::{Debug, GameResult, Score, TOTAL_TRICKS};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Emballage {
     tricks_to_win: i16,
     min_points: i16,
@@ -44,6 +45,8 @@ impl Score for Emballage {
 
 #[cfg(test)]
 mod tests {
+    use crate::gamemodes::Gamemodes;
+
     use super::*;
 
     const EMBALLAGE: Emballage = Emballage {
@@ -58,6 +61,10 @@ mod tests {
         let expected_score = 2;
 
         assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(
+            expected_score,
+            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+        );
     }
 
     #[test]
@@ -66,6 +73,10 @@ mod tests {
         let expected_score = -8;
 
         assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(
+            expected_score,
+            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+        );
     }
 
     #[test]
@@ -74,5 +85,9 @@ mod tests {
         let expected_score = 12;
 
         assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(
+            expected_score,
+            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+        );
     }
 }

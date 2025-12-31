@@ -1,6 +1,7 @@
 use super::{Debug, GameResult, Score};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Seul {
     tricks_to_win: i16,
     min_points: i16,
