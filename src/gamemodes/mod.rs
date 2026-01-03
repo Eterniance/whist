@@ -18,6 +18,7 @@ pub enum GameResult {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub trait Score: Debug + Send + Sync {
+    fn name(&self) -> String;
     fn min_tricks(&self) -> i16;
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult);
 
@@ -33,6 +34,7 @@ pub trait Score: Debug + Send + Sync {
 
 #[cfg(target_arch = "wasm32")]
 pub trait Score: Debug {
+    fn name(&self) -> String;
     fn min_tricks(&self) -> i16;
     fn calculate_score(&self, tricks: i16) -> (i16, GameResult);
 
@@ -66,12 +68,21 @@ macro_rules! score_enum {
                     )+
                }
             }
+
+            fn name(&self) -> String {
+                match self {
+                    $(
+                        $enum::$variant(x) => x.name(),
+                    )+
+                }
+            }
+
         }
     };
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Gamemodes {
     Emballage(Emballage),
     Seul(Seul),

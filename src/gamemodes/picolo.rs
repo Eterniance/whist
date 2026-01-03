@@ -1,7 +1,7 @@
 use super::{Debug, GameResult, Score};
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Picolo {
     min_points: i16,
 }
@@ -23,6 +23,10 @@ impl Score for Picolo {
 
     fn min_tricks(&self) -> i16 {
         1
+    }
+
+    fn name(&self) -> String {
+        "Picolo".to_string()
     }
 }
 

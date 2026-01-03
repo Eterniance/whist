@@ -6,7 +6,7 @@ use crate::{
 use strum_macros::{Display, EnumIter};
 
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ContractorsKind {
     Solo,
     Team,
@@ -25,7 +25,7 @@ impl PartialEq<Contractors> for ContractorsKind {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Contract {
     pub max_bid: Option<i16>,
     pub contractors_kind: ContractorsKind,
@@ -40,7 +40,7 @@ impl Contract {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, EnumIter, Display)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GameRules {
     Dutch,
     French,

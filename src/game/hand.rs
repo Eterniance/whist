@@ -3,9 +3,12 @@ use super::{
     players::Contractors,
     rules::{Contract, ContractorsKind},
 };
-use crate::{game::players::Players, gamemodes::Score};
+use crate::{
+    game::players::{PlayerId, Players},
+    gamemodes::{Score, TOTAL_TRICKS},
+};
 use async_trait::async_trait;
-use std::{ops::RangeInclusive, sync::Arc};
+use std::{collections::HashMap, ops::RangeInclusive, sync::Arc};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -35,25 +38,50 @@ pub struct Hand {
     pub contractors: Contractors,
     contract: Arc<Contract>,
     bid: Option<i16>,
+    tricks: i16,
 }
 
-impl Score for Hand {
-    fn min_tricks(&self) -> i16 {
-        self.contract.min_tricks()
+impl Hand {
+    #[must_use]
+    pub fn gamemode_name(&self) -> String {
+        self.contract.gamemode.name()
     }
 
-    fn calculate_score(&self, tricks: i16) -> (i16, crate::gamemodes::GameResult) {
+    #[must_use]
+    pub fn get_score(&self) -> i16 {
         let tricks = self
             .contract
             .max_bid
-            .map_or(tricks, |max| tricks.clamp(0, max));
+            .map_or(self.tricks, |max| self.tricks.clamp(0, max));
         let adjusted_tricks = self.bid.map_or(tricks, |bid| {
-            let diff = bid - self.min_tricks();
+            let diff = bid - self.contract.min_tricks();
             tricks - diff
         });
-        self.contract.gamemode.calculate_score(adjusted_tricks)
+        self.contract.gamemode.get_score(adjusted_tricks)
     }
 }
+
+// impl Score for Hand {
+//     fn name(&self) -> String {
+//         self.contract.gamemode.name()
+//     }
+
+//     fn min_tricks(&self) -> i16 {
+//         self.contract.min_tricks()
+//     }
+
+//     fn calculate_score(&self, _tricks: i16) -> (i16, crate::gamemodes::GameResult) {
+//         let tricks = self
+//             .contract
+//             .max_bid
+//             .map_or(self.tricks, |max| self.tricks.clamp(0, max));
+//         let adjusted_tricks = self.bid.map_or(tricks, |bid| {
+//             let diff = bid - self.min_tricks();
+//             tricks - diff
+//         });
+//         self.contract.gamemode.calculate_score(adjusted_tricks)
+//     }
+// }
 
 #[derive(Debug)]
 pub enum InputRequest {
@@ -65,10 +93,12 @@ pub enum InputRequest {
     Cancel,
 }
 
+#[derive(Debug)]
 pub struct HandBuilder {
     contract: Arc<Contract>,
     contractors: Option<Contractors>,
     bid: Option<i16>,
+    tricks: i16,
 }
 
 impl HandBuilder {
@@ -78,25 +108,46 @@ impl HandBuilder {
             contract,
             contractors: None,
             bid: None,
+            tricks: 0,
         }
+    }
+
+    #[must_use]
+    pub fn all_requests(&self) -> Vec<InputRequest> {
+        let mut requests = vec![self.contract_request()];
+
+        if let Some(req) = self.bid_request() {
+            requests.push(req);
+        }
+        requests
     }
 
     #[must_use]
     pub fn next_request(&self) -> InputRequest {
         if self.contractors.is_none() {
-            return match self.contract.contractors_kind {
-                ContractorsKind::Solo => InputRequest::ContractorsSolo,
-                ContractorsKind::Team => InputRequest::ContractorsTeam,
-                ContractorsKind::Other => InputRequest::ContractorsOther,
-            };
+            return self.contract_request();
         }
         if self.bid.is_none()
-            && let Some(max) = self.contract.max_bid
+            && let Some(req) = self.bid_request()
         {
-            let min = self.contract.min_tricks();
-            return InputRequest::Bid { min, max };
+            return req;
         }
         InputRequest::Done
+    }
+
+    fn contract_request(&self) -> InputRequest {
+        match self.contract.contractors_kind {
+            ContractorsKind::Solo => InputRequest::ContractorsSolo,
+            ContractorsKind::Team => InputRequest::ContractorsTeam,
+            ContractorsKind::Other => InputRequest::ContractorsOther,
+        }
+    }
+
+    fn bid_request(&self) -> Option<InputRequest> {
+        self.contract.max_bid.map(|max| {
+            let min = self.contract.min_tricks();
+            InputRequest::Bid { min, max }
+        })
     }
 
     /// Sets the contractors for the current contract.
@@ -139,6 +190,10 @@ impl HandBuilder {
         Ok(())
     }
 
+    pub fn set_tricks(&mut self, tricks: i16) {
+        self.tricks = tricks.clamp(0, TOTAL_TRICKS);
+    }
+
     /// Builds the hand from the collected contract parameters.
     ///
     /// All required components must be set before building the hand.
@@ -158,6 +213,7 @@ impl HandBuilder {
             contract: self.contract,
             contractors,
             bid: self.bid,
+            tricks: self.tricks,
         })
     }
 }
@@ -213,6 +269,16 @@ pub async fn build_hand<R: Requester + Sync + Send>(
             InputRequest::Cancel => todo!(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct HandRecap {
+    pub gamemode_name: String,
+    pub scores: HashMap<PlayerId, i16>,
+    pub tricks: i16,
+    pub contractors: Contractors,
+    pub bid: Option<i16>,
 }
 
 #[cfg(test)]

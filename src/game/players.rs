@@ -6,11 +6,13 @@ use crate::game::{hand::Requester, rules::ContractorsKind};
 
 use super::GameError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[repr(usize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Contractors {
-    Solo(PlayerId),
-    Team(PlayerId, PlayerId),
-    Other,
+    Solo(PlayerId) = 1,
+    Team(PlayerId, PlayerId) = 2,
+    Other = 4,
 }
 
 impl PartialEq<ContractorsKind> for Contractors {
@@ -19,7 +21,7 @@ impl PartialEq<ContractorsKind> for Contractors {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PlayerId(usize);
 

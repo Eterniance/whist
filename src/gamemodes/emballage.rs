@@ -1,7 +1,7 @@
 use super::{Debug, GameResult, Score, TOTAL_TRICKS};
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature="serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Emballage {
     tricks_to_win: i16,
     min_points: i16,
@@ -40,6 +40,10 @@ impl Score for Emballage {
 
     fn min_tricks(&self) -> i16 {
         self.tricks_to_win
+    }
+
+    fn name(&self) -> String {
+        "Emballage".to_string()
     }
 }
 
