@@ -42,10 +42,6 @@ impl Score for Seul {
     fn min_tricks(&self) -> i16 {
         self.tricks_to_win
     }
-
-    fn name(&self) -> String {
-        "Seul".to_string()
-    }
 }
 
 #[cfg(test)]

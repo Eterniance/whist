@@ -1,6 +1,6 @@
 use crate::{
     game::players::Contractors,
-    gamemodes::{Emballage, Gamemodes, Picolo, Score, Seul, TOTAL_TRICKS},
+    gamemodes::{Emballage, Gamemodes, Misere, Picolo, Score, Seul, TOTAL_TRICKS},
 };
 
 use strum_macros::{Display, EnumIter};
@@ -19,7 +19,7 @@ impl PartialEq<Contractors> for ContractorsKind {
             (self, other),
             (Self::Solo, Contractors::Solo(_))
                 | (Self::Team, Contractors::Team(_, _))
-                | (Self::Other, Contractors::Other)
+                | (Self::Other, Contractors::Other(_))
         )
     }
 }
@@ -66,7 +66,37 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
                 contractors_kind: ContractorsKind::Solo,
             };
 
-            vec![emballage, seul]
+            let rules = Misere::new(12);
+
+            let petite_misere = Contract {
+                max_bid: None,
+                contractors_kind: ContractorsKind::Other,
+                gamemode: Gamemodes::Misere(rules),
+            };
+
+            let rules = Misere::new(24);
+
+            let grande_misere = Contract {
+                max_bid: None,
+                contractors_kind: ContractorsKind::Other,
+                gamemode: Gamemodes::Misere(rules),
+            };
+
+            let rules = Misere::new(36);
+
+            let grande_misere_sur_trou = Contract {
+                max_bid: None,
+                contractors_kind: ContractorsKind::Other,
+                gamemode: Gamemodes::Misere(rules),
+            };
+
+            vec![
+                emballage,
+                seul,
+                petite_misere,
+                grande_misere,
+                grande_misere_sur_trou,
+            ]
         }
         GameRules::French => {
             let tricks_to_win = 8;

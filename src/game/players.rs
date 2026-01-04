@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 
-use crate::game::{hand::Requester, rules::ContractorsKind};
+use crate::game::{hand::InputError, rules::ContractorsKind};
 
 use super::GameError;
 
@@ -10,9 +10,9 @@ use super::GameError;
 #[repr(usize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Contractors {
-    Solo(PlayerId) = 1,
-    Team(PlayerId, PlayerId) = 2,
-    Other = 4,
+    Solo(PlayerIdAndScore) = 1,
+    Team(PlayerIdAndScore, PlayerIdAndScore) = 2,
+    Other(Vec<PlayerIdAndScore>) = 4,
 }
 
 impl PartialEq<ContractorsKind> for Contractors {
@@ -29,6 +29,30 @@ impl PlayerId {
     #[must_use]
     pub const fn new(idx: usize) -> Self {
         Self(idx)
+    }
+
+    #[must_use]
+    pub const fn idx(&self) -> usize {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct PlayerIdAndScore {
+    pub id: PlayerId,
+    pub score: i16,
+}
+
+impl PlayerIdAndScore {
+    #[must_use]
+    pub const fn new(id: PlayerId, score: i16) -> Self {
+        Self { id, score }
+    }
+
+    #[must_use]
+    pub const fn as_components(&self) -> (&usize, &i16) {
+        (&self.id.0, &self.score)
     }
 }
 
@@ -108,9 +132,24 @@ impl Players {
         self.list.iter().map(|p| p.name.clone()).collect()
     }
 
-    pub fn update_score(&mut self, contractors: &Contractors, score: i16) {
+    /// Update each player score.
+    ///
+    /// Each contractor score will be increase by `score` and the others score will be decrease
+    /// to keep the score sum null.
+    /// Note that score can be negative.
+    ///
+    /// # Errors
+    /// This function can only fail if `Contractors == Contractors::Other` in the event
+    /// that the score sum is not zero
+    /// (for example, an impossible amount of players has been supplied).
+    #[allow(clippy::missing_panics_doc)]
+    pub fn update_score(&mut self, contractors: &Contractors) -> Result<(), InputError> {
         match contractors {
-            Contractors::Solo(PlayerId(idx)) => {
+            Contractors::Solo(pias) => {
+                let (idx, score) = pias.as_components();
+                if score % 3 != 0 {
+                    return Err(InputError::WrongScore);
+                }
                 for (i, player) in self.list.iter_mut().enumerate() {
                     if i == *idx {
                         player.score += score;
@@ -118,47 +157,54 @@ impl Players {
                         player.score -= score / 3;
                     }
                 }
+                Ok(())
             }
-            Contractors::Team(PlayerId(idx_1), PlayerId(idx_2)) => {
-                let (contractors, others): (Vec<_>, Vec<_>) =
-                    self.list.iter_mut().enumerate().partition_map(|(i, p)| {
-                        if (i == *idx_1) | (i == *idx_2) {
-                            Either::Left(p)
-                        } else {
-                            Either::Right(p)
-                        }
-                    });
-
-                for (contractor, other) in contractors.into_iter().zip(others) {
-                    contractor.score += score;
-                    other.score -= score;
+            Contractors::Team(pias1, pias2) => {
+                let (idx_1, score_1) = pias1.as_components();
+                let (idx_2, score_2) = pias2.as_components();
+                if idx_1 == idx_2 {
+                    return Err(InputError::InvalidInput("Same player in team".to_string()));
                 }
-            }
-            Contractors::Other => todo!(),
-        }
-    }
-}
+                if (score_1 + score_2) % 2 != 0 {
+                    return Err(InputError::WrongScore);
+                }
 
-pub async fn fill_players<R, F>(mut players: Players, req: &mut R, on_duplicate: F) -> Players
-where
-    R: Requester,
-    F: Fn(),
-{
-    loop {
-        let Ok(name) = req.ask_name().await else {
-            continue;
-        };
-        match players.add_player(name) {
-            Ok(4) => {
-                break;
+                let other_players_score = (score_1 + score_2) / 2;
+                for (i, p) in self.list.iter_mut().enumerate() {
+                    if i == *idx_1 {
+                        p.score += score_1;
+                    } else if i == *idx_2 {
+                        p.score += score_2;
+                    } else {
+                        p.score -= other_players_score;
+                    }
+                }
+                Ok(())
             }
-            Err(GameError::PlayerAlreadyExists) => {
-                on_duplicate();
-            }
-            _ => {}
+            Contractors::Other(contractors) => match contractors.len() {
+                1 => self.update_score(&Contractors::Solo(
+                    contractors.first().expect("Only one element").clone(),
+                )),
+                2 => self.update_score(&Contractors::Team(
+                    contractors.first().expect("Two elements").clone(),
+                    contractors.get(1).expect("Two elements").clone(),
+                )),
+                3 => {
+                    let mut last_player_idx = 6;
+                    let mut last_player_score = 0;
+                    for pias in contractors {
+                        let (idx, score) = pias.as_components();
+                        last_player_idx -= idx;
+                        last_player_score -= score;
+                        self.list[*idx].score += score;
+                    }
+                    self.list[last_player_idx].score -= last_player_score;
+                    Ok(())
+                }
+                _ => Err(InputError::WrongScore),
+            },
         }
     }
-    players
 }
 
 #[cfg(test)]
@@ -179,13 +225,142 @@ mod tests {
         let tricks = 8;
 
         let score = contracts[0].gamemode.get_score(tricks);
-        let contractors =
-            Contractors::Team(players.get_id("A").unwrap(), players.get_id("B").unwrap());
-        players.update_score(&contractors, score);
+        let contractors = Contractors::Team(
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), score),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), score),
+        );
+        players.update_score(&contractors).unwrap();
 
         assert_eq!(players.list[0].score, 2);
         assert_eq!(players.list[1].score, 2);
         assert_eq!(players.list[2].score, -2);
         assert_eq!(players.list[3].score, -2);
+    }
+    #[test]
+    fn update_score_solo_wrong_score_fails() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        // Not divisible by 3 => WrongScore
+        let contractors = Contractors::Solo(PlayerIdAndScore::new(players.get_id("A").unwrap(), 5));
+
+        let err = players.update_score(&contractors).unwrap_err();
+        assert!(matches!(err, InputError::WrongScore));
+    }
+
+    #[test]
+    fn update_score_team_ok() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        // Team requires (score_1 + score_2) % 2 == 0
+        let contractors = Contractors::Team(
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), 4),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
+        );
+
+        players.update_score(&contractors).unwrap();
+
+        // Others get -(4+2)/2 = -3
+        assert_eq!(players.list[0].score, 4);
+        assert_eq!(players.list[1].score, 2);
+        assert_eq!(players.list[2].score, -3);
+        assert_eq!(players.list[3].score, -3);
+    }
+
+    #[test]
+    fn update_score_team_same_player_fails() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        let a = players.get_id("A").unwrap();
+
+        let contractors = Contractors::Team(
+            PlayerIdAndScore::new(a.clone(), 2),
+            PlayerIdAndScore::new(a, 2),
+        );
+
+        let err = players.update_score(&contractors).unwrap_err();
+        assert!(matches!(err, InputError::InvalidInput(_)));
+    }
+
+    #[test]
+    fn update_score_team_wrong_score_fails() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        // 3 + 2 = 5 (odd) => WrongScore
+        let contractors = Contractors::Team(
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), 3),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
+        );
+
+        let err = players.update_score(&contractors).unwrap_err();
+        assert!(matches!(err, InputError::WrongScore));
+    }
+
+    #[test]
+    fn update_score_other_len1_delegates_to_solo() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        let contractors =
+            Contractors::Other(vec![PlayerIdAndScore::new(players.get_id("A").unwrap(), 6)]);
+
+        players.update_score(&contractors).unwrap();
+
+        assert_eq!(players.list[0].score, 6);
+        assert_eq!(players.list[1].score, -2);
+        assert_eq!(players.list[2].score, -2);
+        assert_eq!(players.list[3].score, -2);
+    }
+
+    #[test]
+    fn update_score_other_len2_delegates_to_team() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        let contractors = Contractors::Other(vec![
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), -5),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), -15),
+        ]);
+
+        players.update_score(&contractors).unwrap();
+
+        assert_eq!(players.list[0].score, -5);
+        assert_eq!(players.list[1].score, -15);
+        assert_eq!(players.list[2].score, 10);
+        assert_eq!(players.list[3].score, 10);
+    }
+
+    #[test]
+    fn update_score_other_len3_ok() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        // For the len=3 branch, your implementation computes the "missing" player index
+        // and applies the negated accumulated score to them.
+        // Choose scores that sum to 0 so the last player stays unchanged.
+        let contractors = Contractors::Other(vec![
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), 2),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), -1),
+            PlayerIdAndScore::new(players.get_id("C").unwrap(), -1),
+        ]);
+
+        players.update_score(&contractors).unwrap();
+
+        assert_eq!(players.list[0].score, 2);
+        assert_eq!(players.list[1].score, -1);
+        assert_eq!(players.list[2].score, -1);
+        assert_eq!(players.list[3].score, 0);
+    }
+
+    #[test]
+    fn update_score_other_wrong_len_fails() {
+        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+
+        // len=4 is not handled => WrongScore
+        let contractors = Contractors::Other(vec![
+            PlayerIdAndScore::new(players.get_id("A").unwrap(), 1),
+            PlayerIdAndScore::new(players.get_id("B").unwrap(), 1),
+            PlayerIdAndScore::new(players.get_id("C").unwrap(), 1),
+            PlayerIdAndScore::new(players.get_id("D").unwrap(), 1),
+        ]);
+
+        let err = players.update_score(&contractors).unwrap_err();
+        assert!(matches!(err, InputError::WrongScore));
     }
 }

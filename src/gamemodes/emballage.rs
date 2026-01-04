@@ -41,10 +41,6 @@ impl Score for Emballage {
     fn min_tricks(&self) -> i16 {
         self.tricks_to_win
     }
-
-    fn name(&self) -> String {
-        "Emballage".to_string()
-    }
 }
 
 #[cfg(test)]
