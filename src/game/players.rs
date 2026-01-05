@@ -243,7 +243,8 @@ mod tests {
         let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
 
         // Not divisible by 3 => WrongScore
-        let contractors = ContractorsScore::Solo(PlayerIdAndScore::new(players.get_id("A").unwrap(), 5));
+        let contractors =
+            ContractorsScore::Solo(PlayerIdAndScore::new(players.get_id("A").unwrap(), 5));
 
         let err = players.update_score(&contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));

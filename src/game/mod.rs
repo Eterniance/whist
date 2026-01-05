@@ -1,7 +1,7 @@
+pub mod contractors;
 pub mod hand;
 pub mod players;
 pub mod rules;
-pub mod contractors;
 
 use thiserror::Error;
 

@@ -22,7 +22,6 @@ fn multiset_eq<T: Eq + Hash>(a: &[T], b: &[T]) -> bool {
     true
 }
 
-
 #[derive(Debug, Clone)]
 #[repr(usize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -42,9 +41,7 @@ impl PartialEq<Contractors> for ContractorsScore {
                 (pias1 == player_id1 && pias2 == player_id2)
                     || (pias2 == player_id1 && pias1 == player_id2)
             }
-            (Self::Other(v1), Contractors::Other(v2)) => {
-                multiset_eq(v1, v2)
-            }
+            (Self::Other(v1), Contractors::Other(v2)) => multiset_eq(v1, v2),
             _ => false,
         }
     }
@@ -144,7 +141,7 @@ mod tests {
         assert_eq!(ContractorsKind::Team, c2);
     }
 
-        #[test]
+    #[test]
     fn equality_test_other_order() {
         let a0 = PlayerIdAndScore::from_id(PlayerId(0));
         let a1 = PlayerIdAndScore::from_id(PlayerId(1));
