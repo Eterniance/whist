@@ -1,6 +1,7 @@
 pub mod hand;
 pub mod players;
 pub mod rules;
+pub mod contractors;
 
 use thiserror::Error;
 
@@ -8,7 +9,7 @@ use crate::game::hand::InputError;
 
 #[derive(Debug, Error)]
 pub enum GameError {
-    #[error("Expected 4 players")]
+    #[error("Too many players have been selected")]
     TooManyPlayer,
     #[error("This player name already exists")]
     PlayerAlreadyExists,

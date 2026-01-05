@@ -1,10 +1,12 @@
-use super::{
-    GameError,
-    players::Contractors,
-    rules::{Contract, ContractorsKind},
+use super::{GameError, rules::Contract};
+use crate::{
+    game::{
+        contractors::{Contractors, ContractorsKind, ContractorsScore},
+        players::{PlayerId, PlayerIdAndScore},
+    },
+    gamemodes::{Score, TOTAL_TRICKS},
 };
-use crate::gamemodes::{Score, TOTAL_TRICKS};
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -41,29 +43,27 @@ impl Hand {
         });
         self.contract.gamemode.get_score(adjusted_tricks)
     }
+
+    #[must_use]
+    pub fn get_contractors_score(&self) -> ContractorsScore {
+        match &self.contractors {
+            Contractors::Solo(id) => {
+                let score = self.get_score();
+                ContractorsScore::Solo(PlayerIdAndScore::new(id.clone(), score))
+            }
+            Contractors::Team(id1, id2) => {
+                let score = self.get_score();
+                ContractorsScore::Team(
+                    PlayerIdAndScore::new(id1.clone(), score),
+                    PlayerIdAndScore::new(id2.clone(), score),
+                )
+            }
+            Contractors::Other(player_id_and_scores) => {
+                ContractorsScore::Other(player_id_and_scores.clone())
+            }
+        }
+    }
 }
-
-// impl Score for Hand {
-//     fn name(&self) -> String {
-//         self.contract.gamemode.name()
-//     }
-
-//     fn min_tricks(&self) -> i16 {
-//         self.contract.min_tricks()
-//     }
-
-//     fn calculate_score(&self, _tricks: i16) -> (i16, crate::gamemodes::GameResult) {
-//         let tricks = self
-//             .contract
-//             .max_bid
-//             .map_or(self.tricks, |max| self.tricks.clamp(0, max));
-//         let adjusted_tricks = self.bid.map_or(tricks, |bid| {
-//             let diff = bid - self.min_tricks();
-//             tricks - diff
-//         });
-//         self.contract.gamemode.calculate_score(adjusted_tricks)
-//     }
-// }
 
 #[derive(Debug)]
 pub enum InputRequest {
@@ -198,4 +198,14 @@ impl HandBuilder {
             tricks: self.tricks,
         })
     }
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct HandRecap {
+    pub gamemode_name: String,
+    pub scores: HashMap<PlayerId, i16>,
+    pub tricks: i16,
+    pub contractors: ContractorsScore,
+    pub bid: Option<i16>,
 }

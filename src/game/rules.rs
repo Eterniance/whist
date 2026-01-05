@@ -1,28 +1,9 @@
 use crate::{
-    game::players::Contractors,
+    game::contractors::ContractorsKind,
     gamemodes::{Emballage, Gamemodes, Misere, Picolo, Score, Seul, TOTAL_TRICKS},
 };
 
 use strum_macros::{Display, EnumIter};
-
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ContractorsKind {
-    Solo,
-    Team,
-    Other,
-}
-
-impl PartialEq<Contractors> for ContractorsKind {
-    fn eq(&self, other: &Contractors) -> bool {
-        matches!(
-            (self, other),
-            (Self::Solo, Contractors::Solo(_))
-                | (Self::Team, Contractors::Team(_, _))
-                | (Self::Other, Contractors::Other(_))
-        )
-    }
-}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -79,7 +60,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let grande_misere = Contract {
                 max_bid: None,
                 contractors_kind: ContractorsKind::Other,
-                gamemode: Gamemodes::Misere(rules),
+                gamemode: Gamemodes::GrandeMisere(rules),
             };
 
             let rules = Misere::new(36);
@@ -87,7 +68,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let grande_misere_sur_trou = Contract {
                 max_bid: None,
                 contractors_kind: ContractorsKind::Other,
-                gamemode: Gamemodes::Misere(rules),
+                gamemode: Gamemodes::GrandeMisereSurTrou(rules),
             };
 
             vec![
