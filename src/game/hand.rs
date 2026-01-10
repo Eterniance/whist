@@ -1,4 +1,4 @@
-use super::{GameError, rules::Contract};
+use super::rules::Contract;
 use crate::{
     game::{
         contractors::{Contractors, ContractorsKind, ContractorsScore},
@@ -12,7 +12,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum InputError {
     #[error("invalid input: {0}")]
-    InvalidInput(String),
+    InvalidInput(&'static str),
     #[error("The score sum cannot be zero")]
     WrongScore,
 }
@@ -141,10 +141,12 @@ impl HandBuilder {
     ///
     /// Returns an error if the contractors type does not match the contract
     /// configuration.
-    pub fn set_contractors(&mut self, c: Contractors) -> Result<(), GameError> {
-        if self.contract.contractors_kind != c {
-            return Err(GameError::HandBuildError(
-                "Contractors type does not match".to_string(),
+    pub fn set_contractors(&mut self, c: Contractors) -> Result<(), HandBuildError> {
+        if self.contract.contractors_kind != c
+            && (self.contract.contractors_kind != ContractorsKind::Other)
+        {
+            return Err(HandBuildError::Contractors(
+                "Contractors type does not match",
             ));
         }
 
@@ -160,10 +162,10 @@ impl HandBuilder {
     ///
     /// Returns an error if the bid is outside the valid range defined by the
     /// contract.
-    pub fn set_bid(&mut self, bid: i16) -> Result<(), GameError> {
+    pub fn set_bid(&mut self, bid: i16) -> Result<(), HandBuildError> {
         if let Some(max_bid) = self.contract.max_bid {
             if !(self.contract.min_tricks()..=max_bid).contains(&bid) {
-                return Err(GameError::HandBuildError("Bid out of range".to_string()));
+                return Err(HandBuildError::Bid("Bid out of range"));
             }
             self.bid = Some(bid);
         } else {
@@ -184,12 +186,12 @@ impl HandBuilder {
     ///
     /// Returns an error if the contractors are missing, or if a bid is required
     /// by the contract but has not been set.
-    pub fn build(self) -> Result<Hand, GameError> {
+    pub fn build(self) -> Result<Hand, HandBuildError> {
         let contractors = self
             .contractors
-            .ok_or_else(|| GameError::HandBuildError("No contractors".to_string()))?;
+            .ok_or(HandBuildError::Contractors("No contractors"))?;
         if self.contract.max_bid.is_some() && self.bid.is_none() {
-            return Err(GameError::HandBuildError("Missing bid".to_string()));
+            return Err(HandBuildError::Bid("Missing bid"));
         }
         Ok(Hand {
             contract: self.contract,
@@ -198,6 +200,14 @@ impl HandBuilder {
             tricks: self.tricks,
         })
     }
+}
+
+#[derive(Debug, Error)]
+pub enum HandBuildError {
+    #[error("{0}")]
+    Contractors(&'static str),
+    #[error("{0}")]
+    Bid(&'static str),
 }
 
 #[derive(Debug, Clone)]

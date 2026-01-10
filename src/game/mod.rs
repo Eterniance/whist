@@ -5,7 +5,7 @@ pub mod rules;
 
 use thiserror::Error;
 
-use crate::game::hand::InputError;
+use crate::game::hand::{HandBuildError, InputError};
 
 #[derive(Debug, Error)]
 pub enum GameError {
@@ -13,12 +13,8 @@ pub enum GameError {
     TooManyPlayer,
     #[error("This player name already exists")]
     PlayerAlreadyExists,
-    #[error("Something went wrong while building hand: {0}")]
-    HandBuildError(String),
-}
-
-impl From<InputError> for GameError {
-    fn from(_value: InputError) -> Self {
-        Self::HandBuildError("Wrong user input".to_string())
-    }
+    #[error(transparent)]
+    HandBuildError(#[from] HandBuildError),
+    #[error(transparent)]
+    InputError(#[from] InputError)
 }

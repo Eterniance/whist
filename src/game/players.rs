@@ -165,7 +165,7 @@ impl Players {
                 let (idx_1, score_1) = pias1.as_components();
                 let (idx_2, score_2) = pias2.as_components();
                 if idx_1 == idx_2 {
-                    return Err(InputError::InvalidInput("Same player in team".to_string()));
+                    return Err(InputError::InvalidInput("Same player in team"));
                 }
                 if (score_1 + score_2) % 2 != 0 {
                     return Err(InputError::WrongScore);
