@@ -1,5 +1,8 @@
 use crate::{
-    game::contractors::ContractorsKind,
+    game::{
+        contractors::{ContractorsKind, ContractorsScore},
+        hand::InputError,
+    },
     gamemodes::{Emballage, Gamemodes, Misere, Picolo, Score, Seul, TOTAL_TRICKS},
 };
 
@@ -106,6 +109,70 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             vec![emballage, seul, picolo]
         }
+    }
+}
+
+pub fn calculate_players_score(contractors: &ContractorsScore) -> Result<[i16; 4], InputError> {
+    let mut scores = [0; 4];
+    match contractors {
+        ContractorsScore::Solo(pias) => {
+            let (idx, &score) = pias.as_components();
+            if score % 3 != 0 {
+                return Err(InputError::WrongScore);
+            }
+            for i in 0..4 {
+                if i == *idx {
+                    scores[i] = score;
+                } else {
+                    scores[i] = -score / 3;
+                }
+            }
+            Ok(scores)
+        }
+        ContractorsScore::Team(pias1, pias2) => {
+            let (idx_1, &score_1) = pias1.as_components();
+            let (idx_2, &score_2) = pias2.as_components();
+            if idx_1 == idx_2 {
+                return Err(InputError::InvalidInput("Same player in team"));
+            }
+            if (score_1 + score_2) % 2 != 0 {
+                return Err(InputError::WrongScore);
+            }
+
+            let other_players_score = -(score_1 + score_2) / 2;
+            for i in 0..4 {
+                if i == *idx_1 {
+                    scores[i] = score_1;
+                } else if i == *idx_2 {
+                    scores[i] = score_2;
+                } else {
+                    scores[i] = other_players_score;
+                }
+            }
+            Ok(scores)
+        }
+        ContractorsScore::Other(contractors) => match contractors.len() {
+            1 => calculate_players_score(&ContractorsScore::Solo(
+                contractors.first().expect("Only one element").clone(),
+            )),
+            2 => calculate_players_score(&ContractorsScore::Team(
+                contractors.first().expect("Two elements").clone(),
+                contractors.get(1).expect("Two elements").clone(),
+            )),
+            3 => {
+                let mut last_player_idx = 6;
+                let mut last_player_score = 0;
+                for pias in contractors {
+                    let (idx, &score) = pias.as_components();
+                    last_player_idx -= idx;
+                    last_player_score -= score;
+                    scores[*idx] = score;
+                }
+                scores[last_player_idx] = last_player_score;
+                Ok(scores)
+            }
+            _ => Err(InputError::WrongScore),
+        },
     }
 }
 

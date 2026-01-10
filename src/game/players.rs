@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 
-use crate::game::{contractors::ContractorsScore, hand::InputError};
-
 use super::GameError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -145,73 +143,16 @@ impl Players {
     /// that the score sum is not zero
     /// (for example, an impossible amount of players has been supplied).
     #[allow(clippy::missing_panics_doc)]
-    pub fn update_score(&mut self, contractors: &ContractorsScore) -> Result<(), InputError> {
-        match contractors {
-            ContractorsScore::Solo(pias) => {
-                let (idx, score) = pias.as_components();
-                if score % 3 != 0 {
-                    return Err(InputError::WrongScore);
-                }
-                for (i, player) in self.list.iter_mut().enumerate() {
-                    if i == *idx {
-                        player.score += score;
-                    } else {
-                        player.score -= score / 3;
-                    }
-                }
-                Ok(())
-            }
-            ContractorsScore::Team(pias1, pias2) => {
-                let (idx_1, score_1) = pias1.as_components();
-                let (idx_2, score_2) = pias2.as_components();
-                if idx_1 == idx_2 {
-                    return Err(InputError::InvalidInput("Same player in team"));
-                }
-                if (score_1 + score_2) % 2 != 0 {
-                    return Err(InputError::WrongScore);
-                }
-
-                let other_players_score = (score_1 + score_2) / 2;
-                for (i, p) in self.list.iter_mut().enumerate() {
-                    if i == *idx_1 {
-                        p.score += score_1;
-                    } else if i == *idx_2 {
-                        p.score += score_2;
-                    } else {
-                        p.score -= other_players_score;
-                    }
-                }
-                Ok(())
-            }
-            ContractorsScore::Other(contractors) => match contractors.len() {
-                1 => self.update_score(&ContractorsScore::Solo(
-                    contractors.first().expect("Only one element").clone(),
-                )),
-                2 => self.update_score(&ContractorsScore::Team(
-                    contractors.first().expect("Two elements").clone(),
-                    contractors.get(1).expect("Two elements").clone(),
-                )),
-                3 => {
-                    let mut last_player_idx = 6;
-                    let mut last_player_score = 0;
-                    for pias in contractors {
-                        let (idx, score) = pias.as_components();
-                        last_player_idx -= idx;
-                        last_player_score -= score;
-                        self.list[*idx].score += score;
-                    }
-                    self.list[last_player_idx].score += last_player_score;
-                    Ok(())
-                }
-                _ => Err(InputError::WrongScore),
-            },
+    pub fn update_score(&mut self, scores: &[i16; 4]) {
+        for (player, score) in self.list.iter_mut().zip(scores.iter()) {
+            player.score += score;
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::game::rules::{GameRules, select_rules};
+    use crate::game::rules::{GameRules, calculate_players_score, select_rules};
     use crate::gamemodes::Score;
 
     use super::*;
@@ -231,7 +172,8 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), score),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), score),
         );
-        players.update_score(&contractors).unwrap();
+        let scores = calculate_players_score(&contractors).unwrap();
+        players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 2);
         assert_eq!(players.list[1].score, 2);
@@ -246,7 +188,7 @@ mod tests {
         let contractors =
             ContractorsScore::Solo(PlayerIdAndScore::new(players.get_id("A").unwrap(), 5));
 
-        let err = players.update_score(&contractors).unwrap_err();
+        let err = calculate_players_score(&contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 
@@ -259,8 +201,8 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), 4),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
         );
-
-        players.update_score(&contractors).unwrap();
+        let scores = calculate_players_score(&contractors).unwrap();
+        players.update_score(&scores);
 
         // Others get -(4+2)/2 = -3
         assert_eq!(players.list[0].score, 4);
@@ -280,7 +222,7 @@ mod tests {
             PlayerIdAndScore::new(a, 2),
         );
 
-        let err = players.update_score(&contractors).unwrap_err();
+        let err = calculate_players_score(&contractors).unwrap_err();
         assert!(matches!(err, InputError::InvalidInput(_)));
     }
 
@@ -294,7 +236,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
         );
 
-        let err = players.update_score(&contractors).unwrap_err();
+        let err = calculate_players_score(&contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 
@@ -304,8 +246,8 @@ mod tests {
 
         let contractors =
             ContractorsScore::Other(vec![PlayerIdAndScore::new(players.get_id("A").unwrap(), 6)]);
-
-        players.update_score(&contractors).unwrap();
+        let scores = calculate_players_score(&contractors).unwrap();
+        players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 6);
         assert_eq!(players.list[1].score, -2);
@@ -321,8 +263,8 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), -5),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), -15),
         ]);
-
-        players.update_score(&contractors).unwrap();
+        let scores = calculate_players_score(&contractors).unwrap();
+        players.update_score(&scores);
 
         assert_eq!(players.list[0].score, -5);
         assert_eq!(players.list[1].score, -15);
@@ -342,8 +284,8 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("B").unwrap(), -1),
             PlayerIdAndScore::new(players.get_id("C").unwrap(), -1),
         ]);
-
-        players.update_score(&contractors).unwrap();
+        let scores = calculate_players_score(&contractors).unwrap();
+        players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 2);
         assert_eq!(players.list[1].score, -1);
@@ -363,7 +305,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("D").unwrap(), 1),
         ]);
 
-        let err = players.update_score(&contractors).unwrap_err();
+        let err = calculate_players_score(&contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 }

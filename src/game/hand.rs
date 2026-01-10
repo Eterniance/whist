@@ -2,11 +2,11 @@ use super::rules::Contract;
 use crate::{
     game::{
         contractors::{Contractors, ContractorsKind, ContractorsScore},
-        players::{PlayerId, PlayerIdAndScore},
+        players::PlayerIdAndScore,
     },
     gamemodes::{Score, TOTAL_TRICKS},
 };
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -61,6 +61,16 @@ impl Hand {
             Contractors::Other(player_id_and_scores) => {
                 ContractorsScore::Other(player_id_and_scores.clone())
             }
+        }
+    }
+
+    #[must_use]
+    pub fn as_recap(self, scores: [i16; 4]) -> HandRecap {
+        HandRecap {
+            scores,
+            gamemode_name: self.gamemode_name(),
+            tricks: self.tricks,
+            bid: self.bid,
         }
     }
 }
@@ -213,9 +223,9 @@ pub enum HandBuildError {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandRecap {
+    pub scores: [i16; 4],
     pub gamemode_name: String,
-    pub scores: HashMap<PlayerId, i16>,
     pub tricks: i16,
-    pub contractors: ContractorsScore,
+    // pub contractors: ContractorsScore,
     pub bid: Option<i16>,
 }

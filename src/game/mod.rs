@@ -16,5 +16,5 @@ pub enum GameError {
     #[error(transparent)]
     HandBuildError(#[from] HandBuildError),
     #[error(transparent)]
-    InputError(#[from] InputError)
+    InputError(#[from] InputError),
 }
