@@ -152,6 +152,8 @@ impl Players {
 
 #[cfg(test)]
 mod tests {
+    use crate::game::contractors::ContractorsScore;
+    use crate::game::hand::InputError;
     use crate::game::rules::{GameRules, calculate_players_score, select_rules};
     use crate::gamemodes::Score;
 
