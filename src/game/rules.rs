@@ -184,7 +184,7 @@ mod tests {
     fn dutch() {
         let scorables = select_rules(&GameRules::Dutch);
         let emballage = &scorables[0];
-        let emballage_score = emballage.gamemode.get_score(8);
+        let emballage_score = emballage.gamemode.get_single_player_score(8);
 
         let expected_score = 2;
 

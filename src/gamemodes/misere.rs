@@ -1,4 +1,4 @@
-use super::{Debug, GameResult, Score};
+use super::{Debug, PointsCoefficient, Score};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,11 +14,11 @@ impl Misere {
 }
 
 impl Score for Misere {
-    fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
+    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         if tricks == 0 {
-            return (self.min_points, GameResult::Win);
+            return (self.min_points, PointsCoefficient::One);
         }
-        (self.min_points, GameResult::Lose)
+        (self.min_points, PointsCoefficient::DoubleNeg)
     }
 
     fn min_tricks(&self) -> i16 {
@@ -37,7 +37,7 @@ mod tests {
         let tricks = 0;
         let expected_score = 12;
 
-        assert_eq!(expected_score, MISERE.get_score(tricks));
+        assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
     }
 
     #[test]
@@ -45,9 +45,9 @@ mod tests {
         let tricks = 1;
         let expected_score = -24;
 
-        assert_eq!(expected_score, MISERE.get_score(tricks));
+        assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
 
         let tricks = 3;
-        assert_eq!(expected_score, MISERE.get_score(tricks));
+        assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
     }
 }

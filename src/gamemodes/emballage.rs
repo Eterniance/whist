@@ -1,4 +1,4 @@
-use super::{Debug, GameResult, Score, TOTAL_TRICKS};
+use super::{Debug, PointsCoefficient, Score, TOTAL_TRICKS};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -20,7 +20,7 @@ impl Emballage {
 }
 
 impl Score for Emballage {
-    fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
+    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         let capot = tricks == TOTAL_TRICKS;
 
         let suppl_tricks = tricks - self.tricks_to_win;
@@ -29,10 +29,10 @@ impl Score for Emballage {
         let result = match suppl_tricks {
             0.. if capot => {
                 points -= self.points_per_suppl_trick;
-                GameResult::Capot
+                PointsCoefficient::Double
             }
-            0.. => GameResult::Win,
-            _ => GameResult::Lose,
+            0.. => PointsCoefficient::One,
+            _ => PointsCoefficient::DoubleNeg,
         };
 
         (points, result)
@@ -60,10 +60,10 @@ mod tests {
         let tricks = 8;
         let expected_score = 2;
 
-        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
         assert_eq!(
             expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
         );
     }
 
@@ -72,10 +72,10 @@ mod tests {
         let tricks = 6;
         let expected_score = -8;
 
-        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
         assert_eq!(
             expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
         );
     }
 
@@ -84,10 +84,10 @@ mod tests {
         let tricks = 13;
         let expected_score = 12;
 
-        assert_eq!(expected_score, EMBALLAGE.get_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
         assert_eq!(
             expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_score(tricks)
+            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
         );
     }
 }

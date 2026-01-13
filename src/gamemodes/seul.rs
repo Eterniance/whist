@@ -1,4 +1,4 @@
-use super::{Debug, GameResult, Score};
+use super::{Debug, PointsCoefficient, Score};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -27,15 +27,15 @@ impl Seul {
 }
 
 impl Score for Seul {
-    fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
+    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         let suppl_tricks = tricks.clamp(0, self.max_tricks_allowed) - self.tricks_to_win;
 
         if let 0.. = suppl_tricks {
             let points = self.min_points + suppl_tricks * self.points_per_suppl_trick;
-            (points, GameResult::Win)
+            (points, PointsCoefficient::One)
         } else {
             let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
-            (points, GameResult::Lose)
+            (points, PointsCoefficient::DoubleNeg)
         }
     }
 
@@ -60,7 +60,7 @@ mod tests {
         let tricks = 8;
         let expected_score = 12;
 
-        assert_eq!(expected_score, SEUL.get_score(tricks));
+        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
     }
 
     #[test]
@@ -68,7 +68,7 @@ mod tests {
         let tricks = 3;
         let expected_score = -30;
 
-        assert_eq!(expected_score, SEUL.get_score(tricks));
+        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
     }
 
     #[test]
@@ -76,6 +76,6 @@ mod tests {
         let tricks = 9;
         let expected_score = 12;
 
-        assert_eq!(expected_score, SEUL.get_score(tricks));
+        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
     }
 }

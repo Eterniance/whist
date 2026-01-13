@@ -12,23 +12,55 @@ pub(crate) use misere::Misere;
 
 pub const TOTAL_TRICKS: i16 = 13;
 
-pub enum GameResult {
-    Win,
-    Lose,
-    Capot,
+#[repr(i8)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum PointsCoefficient {
+    One = 1,
+    Double = 2,
+    DoubleNeg = -2,
+}
+
+impl PointsCoefficient {
+    #[inline]
+    #[must_use]
+    pub const fn as_i8(self) -> i8 {
+        self as i8
+    }
+}
+
+impl From<PointsCoefficient> for i8 {
+    #[inline]
+    fn from(v: PointsCoefficient) -> Self {
+        v as Self
+    }
+}
+
+impl From<PointsCoefficient> for i16 {
+    #[inline]
+    fn from(v: PointsCoefficient) -> Self {
+        Self::from(v as i8)
+    }
+}
+impl From<PointsCoefficient> for i32 {
+    #[inline]
+    fn from(v: PointsCoefficient) -> Self {
+        Self::from(v as i8)
+    }
+}
+impl From<PointsCoefficient> for i64 {
+    #[inline]
+    fn from(v: PointsCoefficient) -> Self {
+        Self::from(v as i8)
+    }
 }
 
 pub trait Score: Debug {
     fn min_tricks(&self) -> i16;
-    fn calculate_score(&self, tricks: i16) -> (i16, GameResult);
+    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient);
 
-    fn get_score(&self, tricks: i16) -> i16 {
-        let (points, result) = self.calculate_score(tricks);
-        match result {
-            GameResult::Win => points,
-            GameResult::Lose => -2 * points,
-            GameResult::Capot => 2 * points,
-        }
+    fn get_single_player_score(&self, tricks: i16) -> i16 {
+        let (points, coef) = self.calculate_score(tricks);
+        points * i16::from(coef)
     }
 }
 
@@ -45,7 +77,7 @@ macro_rules! score_enum {
                 }
             }
 
-            fn calculate_score(&self, tricks: i16) -> (i16, GameResult) {
+            fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
                 match self {
                     $(
                         $enum::$variant(x) => x.calculate_score(tricks),

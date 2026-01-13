@@ -41,7 +41,9 @@ impl Hand {
             let diff = bid - self.contract.min_tricks();
             tricks - diff
         });
-        self.contract.gamemode.get_score(adjusted_tricks)
+        self.contract
+            .gamemode
+            .get_single_player_score(adjusted_tricks)
     }
 
     #[must_use]

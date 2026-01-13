@@ -169,7 +169,7 @@ mod tests {
         }
         let tricks = 8;
 
-        let score = contracts[0].gamemode.get_score(tricks);
+        let score = contracts[0].gamemode.get_single_player_score(tricks);
         let contractors = ContractorsScore::Team(
             PlayerIdAndScore::new(players.get_id("A").unwrap(), score),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), score),
