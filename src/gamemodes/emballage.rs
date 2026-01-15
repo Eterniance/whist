@@ -1,4 +1,6 @@
-use super::{Debug, PointsCoefficient, Score, TOTAL_TRICKS};
+use crate::gamemodes::Tricks;
+
+use super::{Debug, PointsCoefficient, Score};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -21,7 +23,7 @@ impl Emballage {
 
 impl Score for Emballage {
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
-        let capot = tricks == TOTAL_TRICKS;
+        let capot = tricks == Tricks::MAX.into();
 
         let suppl_tricks = tricks - self.tricks_to_win;
         let mut points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
