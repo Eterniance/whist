@@ -1,4 +1,4 @@
-use super::{Debug, PointsCoefficient, Score};
+use crate::scoring::{Score, PointsCoefficient};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

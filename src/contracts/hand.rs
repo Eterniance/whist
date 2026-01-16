@@ -1,7 +1,7 @@
-use super::rules::Contract;
+use super::{Contract, contractors::ContractorsScore};
 use crate::{
-    game::{contractors::ContractorsScore, players::PlayerId},
-    gamemodes::{Score, TOTAL_TRICKS},
+    players::players::PlayerId,
+    scoring::{Score, TOTAL_TRICKS},
 };
 use std::rc::Rc;
 use thiserror::Error;

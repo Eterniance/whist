@@ -1,24 +1,11 @@
 use crate::{
-    game::{contractors::ContractorsScore, hand::InputError},
-    gamemodes::{Emballage, Misere, Picolo, Score, Seul, TOTAL_TRICKS, score::Gamemodes},
+    contracts::{Contract, contractors::ContractorsScore, hand::InputError},
+    scoring::{
+        Gamemodes, TOTAL_TRICKS,
+        gamemodes::{Emballage, Misere, Picolo, Seul},
+    },
 };
-use std::ops::RangeInclusive;
 use strum_macros::{Display, EnumIter};
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Contract {
-    pub max_bid: Option<i16>,
-    pub contractors_kind: RangeInclusive<u8>,
-    pub gamemode: Gamemodes,
-}
-
-impl Contract {
-    #[must_use]
-    pub fn min_tricks(&self) -> i16 {
-        self.gamemode.min_tricks()
-    }
-}
 
 #[derive(Debug, Clone, Eq, PartialEq, EnumIter, Display)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -176,6 +163,7 @@ pub fn calculate_players_score(contractors: ContractorsScore) -> Result<[i16; 4]
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scoring::Score;
 
     #[test]
     fn dutch() {

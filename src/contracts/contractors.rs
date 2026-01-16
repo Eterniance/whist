@@ -1,4 +1,4 @@
-use crate::game::players::{PlayerId, PlayerIdAndScore};
+use crate::players::players::{PlayerId, PlayerIdAndScore};
 use std::collections::HashMap;
 use std::hash::Hash;
 

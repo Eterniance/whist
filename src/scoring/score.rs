@@ -1,7 +1,9 @@
-use crate::gamemodes::{Debug, Div, Emballage, Misere, Neg, Picolo, Seul};
+use std::ops::{Div, Neg};
+
+use crate::scoring::gamemodes::{Emballage, Misere, Picolo, Seul};
 use crate::{
-    game::players::PlayerId,
-    gamemodes::{PointsCoefficient, Tricks},
+    players::players::PlayerId,
+    scoring::{PointsCoefficient, Tricks},
 };
 
 const TOTAL_PLAYER: usize = 4;

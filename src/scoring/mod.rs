@@ -1,18 +1,8 @@
-use std::{
-    fmt::Debug,
-    ops::{Deref, Div, Neg},
-};
+pub mod gamemodes;
+mod score;
+use std::ops::Deref;
 
-mod emballage;
-pub use crate::gamemodes::emballage::Emballage;
-mod picolo;
-pub use picolo::Picolo;
-mod seul;
-pub use seul::Seul;
-mod misere;
-pub use misere::Misere;
-pub mod score;
-pub use score::Score;
+pub use score::{Score, Gamemodes};
 
 pub const TOTAL_TRICKS: i16 = 13;
 

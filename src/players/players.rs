@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 
-use super::GameError;
+use crate::GameError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -152,10 +152,9 @@ impl Players {
 
 #[cfg(test)]
 mod tests {
-    use crate::game::contractors::ContractorsScore;
-    use crate::game::hand::InputError;
+    use crate::contracts::{contractors::ContractorsScore, hand::InputError};
     use crate::game::rules::{GameRules, calculate_players_score, select_rules};
-    use crate::gamemodes::Score;
+    use crate::scoring::Score;
 
     use super::*;
 
