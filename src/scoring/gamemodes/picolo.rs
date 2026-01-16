@@ -1,4 +1,4 @@
-use crate::scoring::{Score, PointsCoefficient};
+use crate::scoring::{PointsCoefficient, Score};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -28,7 +28,7 @@ impl Score for Picolo {
 
 #[cfg(test)]
 mod tests {
-    use crate::scoring::score::Gamemodes;
+    use crate::scoring::Gamemodes;
 
     use super::*;
 

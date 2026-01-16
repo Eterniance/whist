@@ -1,6 +1,6 @@
 use super::{Contract, contractors::ContractorsScore};
 use crate::{
-    players::players::PlayerId,
+    players::PlayerId,
     scoring::{Score, TOTAL_TRICKS},
 };
 use std::rc::Rc;

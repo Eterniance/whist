@@ -1,8 +1,9 @@
 pub mod gamemodes;
+pub(crate) use gamemodes::*;
 mod score;
 use std::ops::Deref;
 
-pub use score::{Score, Gamemodes};
+pub use score::Score;
 
 pub const TOTAL_TRICKS: i16 = 13;
 
@@ -83,3 +84,61 @@ impl From<PointsCoefficient> for i64 {
         Self::from(v as i8)
     }
 }
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Gamemodes {
+    Emballage(Emballage),
+    Seul(Seul),
+    Picolo(Picolo),
+    Misere(Misere),
+    GrandeMisere(Misere),
+    GrandeMisereSurTrou(Misere),
+}
+
+impl Gamemodes {
+    #[must_use]
+    pub fn name(&self) -> String {
+        match self {
+            Self::Emballage(_) => "Emballage".to_string(),
+            Self::Seul(_) => "Seul".to_string(),
+            Self::Picolo(_) => "Picolo".to_string(),
+            Self::Misere(_) => "Petite Misere".to_string(),
+            Self::GrandeMisere(_) => "Grande Misere".to_string(),
+            Self::GrandeMisereSurTrou(_) => "Grande Misere sur Trou".to_string(),
+        }
+    }
+}
+
+macro_rules! score_enum {
+    ($enum:ident {
+        $ ( $variant:ident( $inner:ty ) ), + $(,)?
+    }) => {
+        impl Score for $enum {
+            fn min_tricks(&self) -> i16 {
+                match self {
+                    $(
+                        $enum::$variant(x) => x.min_tricks(),
+                    )+
+                }
+            }
+
+            fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
+                match self {
+                    $(
+                        $enum::$variant(x) => x.calculate_score(tricks),
+                    )+
+               }
+            }
+        }
+    };
+}
+
+score_enum!(Gamemodes{
+    Emballage(Emballage),
+    Seul(Seul),
+    Picolo(Picolo),
+    Misere(Misere),
+    GrandeMisere(Misere),
+    GrandeMisereSurTrou(Misere),
+});

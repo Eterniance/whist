@@ -1,7 +1,8 @@
-pub mod game;
-pub mod scoring;
 pub mod contracts;
+pub mod game;
 pub mod players;
+pub mod scoring;
+pub use scoring::gamemodes;
 
 use thiserror::Error;
 

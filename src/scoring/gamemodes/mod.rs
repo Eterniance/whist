@@ -6,5 +6,3 @@ mod seul;
 pub use seul::Seul;
 mod misere;
 pub use misere::Misere;
-
-

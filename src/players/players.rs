@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
+use std::collections::HashMap;
 
 use crate::GameError;
 
@@ -183,7 +182,7 @@ mod tests {
     }
     #[test]
     fn update_score_solo_wrong_score_fails() {
-        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+        let players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
 
         // Not divisible by 3 => WrongScore
         let contractors =
@@ -214,7 +213,7 @@ mod tests {
 
     #[test]
     fn update_score_team_same_player_fails() {
-        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+        let players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
 
         let a = players.get_id("A").unwrap();
 
@@ -229,7 +228,7 @@ mod tests {
 
     #[test]
     fn update_score_team_wrong_score_fails() {
-        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+        let players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
 
         // 3 + 2 = 5 (odd) => WrongScore
         let contractors = ContractorsScore::Team(
@@ -296,7 +295,7 @@ mod tests {
 
     #[test]
     fn update_score_other_wrong_len_fails() {
-        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+        let players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
 
         // len=4 is not handled => WrongScore
         let contractors = ContractorsScore::Other(vec![
