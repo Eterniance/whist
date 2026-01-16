@@ -47,7 +47,7 @@ impl Score for Emballage {
 
 #[cfg(test)]
 mod tests {
-    use crate::gamemodes::Gamemodes;
+    use crate::gamemodes::score::Gamemodes;
 
     use super::*;
 

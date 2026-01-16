@@ -174,7 +174,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), score),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), score),
         );
-        let scores = calculate_players_score(&contractors).unwrap();
+        let scores = calculate_players_score(contractors).unwrap();
         players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 2);
@@ -190,7 +190,7 @@ mod tests {
         let contractors =
             ContractorsScore::Solo(PlayerIdAndScore::new(players.get_id("A").unwrap(), 5));
 
-        let err = calculate_players_score(&contractors).unwrap_err();
+        let err = calculate_players_score(contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 
@@ -203,7 +203,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), 4),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
         );
-        let scores = calculate_players_score(&contractors).unwrap();
+        let scores = calculate_players_score(contractors).unwrap();
         players.update_score(&scores);
 
         // Others get -(4+2)/2 = -3
@@ -224,7 +224,7 @@ mod tests {
             PlayerIdAndScore::new(a, 2),
         );
 
-        let err = calculate_players_score(&contractors).unwrap_err();
+        let err = calculate_players_score(contractors).unwrap_err();
         assert!(matches!(err, InputError::InvalidInput(_)));
     }
 
@@ -238,7 +238,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("B").unwrap(), 2),
         );
 
-        let err = calculate_players_score(&contractors).unwrap_err();
+        let err = calculate_players_score(contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 
@@ -248,7 +248,7 @@ mod tests {
 
         let contractors =
             ContractorsScore::Other(vec![PlayerIdAndScore::new(players.get_id("A").unwrap(), 6)]);
-        let scores = calculate_players_score(&contractors).unwrap();
+        let scores = calculate_players_score(contractors).unwrap();
         players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 6);
@@ -265,7 +265,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("A").unwrap(), -5),
             PlayerIdAndScore::new(players.get_id("B").unwrap(), -15),
         ]);
-        let scores = calculate_players_score(&contractors).unwrap();
+        let scores = calculate_players_score(contractors).unwrap();
         players.update_score(&scores);
 
         assert_eq!(players.list[0].score, -5);
@@ -286,7 +286,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("B").unwrap(), -1),
             PlayerIdAndScore::new(players.get_id("C").unwrap(), -1),
         ]);
-        let scores = calculate_players_score(&contractors).unwrap();
+        let scores = calculate_players_score(contractors).unwrap();
         players.update_score(&scores);
 
         assert_eq!(players.list[0].score, 2);
@@ -307,7 +307,7 @@ mod tests {
             PlayerIdAndScore::new(players.get_id("D").unwrap(), 1),
         ]);
 
-        let err = calculate_players_score(&contractors).unwrap_err();
+        let err = calculate_players_score(contractors).unwrap_err();
         assert!(matches!(err, InputError::WrongScore));
     }
 }

@@ -28,7 +28,7 @@ impl Score for Picolo {
 
 #[cfg(test)]
 mod tests {
-    use crate::gamemodes::Gamemodes;
+    use crate::gamemodes::score::Gamemodes;
 
     use super::*;
 

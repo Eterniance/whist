@@ -1,9 +1,6 @@
 use super::rules::Contract;
 use crate::{
-    game::{
-        contractors::{Contractors, ContractorsKind, ContractorsScore},
-        players::PlayerIdAndScore,
-    },
+    game::{contractors::ContractorsScore, players::PlayerId},
     gamemodes::{Score, TOTAL_TRICKS},
 };
 use std::rc::Rc;
@@ -19,7 +16,7 @@ pub enum InputError {
 
 #[derive(Debug)]
 pub struct Hand {
-    pub contractors: Contractors,
+    pub contractors: Box<[PlayerId]>,
     contract: Rc<Contract>,
     bid: Option<i16>,
     tricks: i16,
@@ -48,21 +45,9 @@ impl Hand {
 
     #[must_use]
     pub fn get_contractors_score(&self) -> ContractorsScore {
-        match &self.contractors {
-            Contractors::Solo(id) => {
-                let score = self.get_score();
-                ContractorsScore::Solo(PlayerIdAndScore::new(id.clone(), score))
-            }
-            Contractors::Team(id1, id2) => {
-                let score = self.get_score();
-                ContractorsScore::Team(
-                    PlayerIdAndScore::new(id1.clone(), score),
-                    PlayerIdAndScore::new(id2.clone(), score),
-                )
-            }
-            Contractors::Other(player_id_and_scores) => {
-                ContractorsScore::Other(player_id_and_scores.clone())
-            }
+        match self.contractors.len() {
+            1 => todo!(),
+            _ => unimplemented!(),
         }
     }
 
@@ -79,9 +64,7 @@ impl Hand {
 
 #[derive(Debug)]
 pub enum InputRequest {
-    ContractorsSolo,
-    ContractorsTeam,
-    ContractorsOther,
+    PlayersNumber { min: u8, max: u8 },
     Bid { min: i16, max: i16 },
     Done,
     Cancel,
@@ -90,7 +73,7 @@ pub enum InputRequest {
 #[derive(Debug)]
 pub struct HandBuilder {
     contract: Rc<Contract>,
-    contractors: Option<Contractors>,
+    contractors: Option<Box<[PlayerId]>>,
     bid: Option<i16>,
     tricks: i16,
 }
@@ -130,11 +113,11 @@ impl HandBuilder {
     }
 
     fn contract_request(&self) -> InputRequest {
-        match self.contract.contractors_kind {
-            ContractorsKind::Solo => InputRequest::ContractorsSolo,
-            ContractorsKind::Team => InputRequest::ContractorsTeam,
-            ContractorsKind::Other => InputRequest::ContractorsOther,
-        }
+        let (&min, &max) = (
+            self.contract.contractors_kind.start(),
+            self.contract.contractors_kind.end(),
+        );
+        InputRequest::PlayersNumber { min, max }
     }
 
     fn bid_request(&self) -> Option<InputRequest> {
@@ -153,16 +136,17 @@ impl HandBuilder {
     ///
     /// Returns an error if the contractors type does not match the contract
     /// configuration.
-    pub fn set_contractors(&mut self, c: Contractors) -> Result<(), HandBuildError> {
-        if self.contract.contractors_kind != c
-            && (self.contract.contractors_kind != ContractorsKind::Other)
+    #[allow(clippy::missing_panics_doc)]
+    pub fn set_contractors(&mut self, c: &[PlayerId]) -> Result<(), HandBuildError> {
+        if &u8::try_from(c.len()).expect("Only 4 players max")
+            < self.contract.contractors_kind.end()
         {
             return Err(HandBuildError::Contractors(
                 "Contractors type does not match",
             ));
         }
 
-        self.contractors = Some(c);
+        self.contractors = Some(c.into());
         Ok(())
     }
 

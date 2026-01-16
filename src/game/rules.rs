@@ -1,18 +1,15 @@
 use crate::{
-    game::{
-        contractors::{ContractorsKind, ContractorsScore},
-        hand::InputError,
-    },
-    gamemodes::{Emballage, Gamemodes, Misere, Picolo, Score, Seul, TOTAL_TRICKS},
+    game::{contractors::ContractorsScore, hand::InputError},
+    gamemodes::{Emballage, Misere, Picolo, Score, Seul, TOTAL_TRICKS, score::Gamemodes},
 };
-
+use std::ops::RangeInclusive;
 use strum_macros::{Display, EnumIter};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Contract {
     pub max_bid: Option<i16>,
-    pub contractors_kind: ContractorsKind,
+    pub contractors_kind: RangeInclusive<u8>,
     pub gamemode: Gamemodes,
 }
 
@@ -39,7 +36,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let emballage = Contract {
                 max_bid: Some(TOTAL_TRICKS),
                 gamemode: Gamemodes::Emballage(rules),
-                contractors_kind: ContractorsKind::Team,
+                contractors_kind: 2..=2,
             };
             let max_tricks_allowed = 8;
             let rules = Seul::new(6, 6, 3, max_tricks_allowed);
@@ -47,14 +44,14 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let seul = Contract {
                 max_bid: Some(max_tricks_allowed),
                 gamemode: Gamemodes::Seul(rules),
-                contractors_kind: ContractorsKind::Solo,
+                contractors_kind: 1..=1,
             };
 
             let rules = Misere::new(12);
 
             let petite_misere = Contract {
                 max_bid: None,
-                contractors_kind: ContractorsKind::Other,
+                contractors_kind: 1..=3,
                 gamemode: Gamemodes::Misere(rules),
             };
 
@@ -62,7 +59,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             let grande_misere = Contract {
                 max_bid: None,
-                contractors_kind: ContractorsKind::Other,
+                contractors_kind: 1..=3,
                 gamemode: Gamemodes::GrandeMisere(rules),
             };
 
@@ -70,7 +67,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
 
             let grande_misere_sur_trou = Contract {
                 max_bid: None,
-                contractors_kind: ContractorsKind::Other,
+                contractors_kind: 1..=3,
                 gamemode: Gamemodes::GrandeMisereSurTrou(rules),
             };
 
@@ -88,7 +85,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let emballage = Contract {
                 max_bid: Some(TOTAL_TRICKS),
                 gamemode: Gamemodes::Emballage(rules),
-                contractors_kind: ContractorsKind::Team,
+                contractors_kind: 2..=2,
             };
             let max_tricks_allowed = 8;
             let rules = Seul::new(6, 6, 3, max_tricks_allowed);
@@ -96,7 +93,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let seul = Contract {
                 max_bid: Some(max_tricks_allowed),
                 gamemode: Gamemodes::Seul(rules),
-                contractors_kind: ContractorsKind::Solo,
+                contractors_kind: 1..=1,
             };
 
             let rules = Picolo::new(12);
@@ -104,7 +101,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
             let picolo = Contract {
                 max_bid: None,
                 gamemode: Gamemodes::Picolo(rules),
-                contractors_kind: ContractorsKind::Solo,
+                contractors_kind: 1..=1,
             };
 
             vec![emballage, seul, picolo]
@@ -112,7 +109,7 @@ pub fn select_rules(rules: &GameRules) -> Vec<Contract> {
     }
 }
 
-pub fn calculate_players_score(contractors: &ContractorsScore) -> Result<[i16; 4], InputError> {
+pub fn calculate_players_score(contractors: ContractorsScore) -> Result<[i16; 4], InputError> {
     let mut scores = [0; 4];
     match contractors {
         ContractorsScore::Solo(pias) => {
@@ -152,10 +149,10 @@ pub fn calculate_players_score(contractors: &ContractorsScore) -> Result<[i16; 4
             Ok(scores)
         }
         ContractorsScore::Other(contractors) => match contractors.len() {
-            1 => calculate_players_score(&ContractorsScore::Solo(
+            1 => calculate_players_score(ContractorsScore::Solo(
                 contractors.first().expect("Only one element").clone(),
             )),
-            2 => calculate_players_score(&ContractorsScore::Team(
+            2 => calculate_players_score(ContractorsScore::Team(
                 contractors.first().expect("Two elements").clone(),
                 contractors.get(1).expect("Two elements").clone(),
             )),
