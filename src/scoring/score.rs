@@ -5,8 +5,6 @@ use crate::{
 use std::{fmt::Debug, ops::{Div, Neg}};
 use dyn_clone::DynClone;
 
-const TOTAL_PLAYER: usize = 4;
-
 #[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Score: Debug + DynClone {
     fn min_tricks(&self) -> i16;
@@ -68,24 +66,12 @@ pub trait Score: Debug + DynClone {
 #[cfg(test)]
 #[allow(unused)]
 mod tests {
+    use crate::p_and_t;
+
     use super::*;
 
     #[derive(Debug, Clone)]
     struct Scorable;
-
-    macro_rules! p_and_t {
-        ( $($trick:literal),+ $(,)? ) => {
-            {let mut idx = 0;
-                [ $(
-                    {
-                        let pair = (PlayerId(idx), Tricks::try_from($trick).unwrap());
-                        idx += 1;
-                        pair
-                    },
-                )+]
-            }
-        };
-    }
 
     impl Score for Scorable {
         fn min_tricks(&self) -> i16 {

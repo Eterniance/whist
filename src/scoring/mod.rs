@@ -1,8 +1,8 @@
+use std::ops::Deref;
+
 pub mod gamemodes;
 pub(crate) use gamemodes::*;
 mod score;
-use std::ops::Deref;
-
 pub use score::Score;
 
 pub const TOTAL_TRICKS: i16 = 13;

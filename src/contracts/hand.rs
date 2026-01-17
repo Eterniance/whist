@@ -1,5 +1,4 @@
-use super::{Contract, contractors::ContractorsScore};
-use crate::{players::PlayerId, scoring::TOTAL_TRICKS};
+use crate::{contracts::Contract, players::PlayerId, scoring::TOTAL_TRICKS};
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -38,14 +37,6 @@ impl Hand {
         self.contract
             .gamemode
             .get_single_player_score(adjusted_tricks)
-    }
-
-    #[must_use]
-    pub fn get_contractors_score(&self) -> ContractorsScore {
-        match self.contractors.len() {
-            1 => todo!(),
-            _ => unimplemented!(),
-        }
     }
 
     #[must_use]
