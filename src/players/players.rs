@@ -152,14 +152,13 @@ impl Players {
 #[cfg(test)]
 mod tests {
     use crate::contracts::{contractors::ContractorsScore, hand::InputError};
-    use crate::game::rules::{GameRules, calculate_players_score, select_rules};
-    use crate::scoring::Score;
+    use crate::game::rules::{calculate_players_score, default_contracts};
 
     use super::*;
 
     #[test]
     fn test_players() {
-        let contracts = select_rules(&GameRules::Dutch);
+        let contracts = default_contracts();
         let names = ["A", "B", "C", "D"];
         let mut players = Players::default();
         for name in names {

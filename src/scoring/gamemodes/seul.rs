@@ -26,6 +26,7 @@ impl Seul {
     }
 }
 
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Seul {
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         let suppl_tricks = tricks.clamp(0, self.max_tricks_allowed) - self.tricks_to_win;

@@ -2,11 +2,13 @@ use crate::{
     players::PlayerId,
     scoring::{PointsCoefficient, Tricks},
 };
-use std::ops::{Div, Neg};
+use std::{fmt::Debug, ops::{Div, Neg}};
+use dyn_clone::DynClone;
 
 const TOTAL_PLAYER: usize = 4;
 
-pub trait Score {
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
+pub trait Score: Debug + DynClone {
     fn min_tricks(&self) -> i16;
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient);
 
@@ -68,6 +70,7 @@ pub trait Score {
 mod tests {
     use super::*;
 
+    #[derive(Debug, Clone)]
     struct Scorable;
 
     macro_rules! p_and_t {

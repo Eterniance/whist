@@ -1,8 +1,5 @@
 use super::{Contract, contractors::ContractorsScore};
-use crate::{
-    players::PlayerId,
-    scoring::{Score, TOTAL_TRICKS},
-};
+use crate::{players::PlayerId, scoring::TOTAL_TRICKS};
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -24,8 +21,8 @@ pub struct Hand {
 
 impl Hand {
     #[must_use]
-    pub fn gamemode_name(&self) -> String {
-        self.contract.gamemode.name()
+    pub fn gamemode_name(&self) -> &'static str {
+        self.contract.name
     }
 
     #[must_use]
@@ -55,7 +52,7 @@ impl Hand {
     pub fn as_recap(self, scores: [i16; 4]) -> HandRecap {
         HandRecap {
             scores,
-            gamemode_name: self.gamemode_name(),
+            gamemode_name: self.gamemode_name().to_string(),
             tricks: self.tricks,
             bid: self.bid,
         }

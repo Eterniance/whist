@@ -13,6 +13,7 @@ impl Picolo {
     }
 }
 
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Picolo {
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         if tricks == 1 {
@@ -28,8 +29,6 @@ impl Score for Picolo {
 
 #[cfg(test)]
 mod tests {
-    use crate::scoring::Gamemodes;
-
     use super::*;
 
     const PICOLO: Picolo = Picolo { min_points: 12 };
@@ -40,10 +39,6 @@ mod tests {
         let expected_score = 12;
 
         assert_eq!(expected_score, PICOLO.get_single_player_score(tricks));
-        assert_eq!(
-            expected_score,
-            Gamemodes::Picolo(PICOLO).get_single_player_score(tricks)
-        );
     }
 
     #[test]

@@ -4,17 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-serde = ["dep:serde"]
+serde = ["dep:serde","dep:typetag"]
 
 [dependencies]
 itertools = "0.14"
-serde = { version = "1.0.219", features = ["derive"], optional = true}
 strum = "0.27.2"
 strum_macros = "0.27.2"
 thiserror = "2"
+
+# Serde
+serde = { version = "1.0.219", features = ["derive"], optional = true}
+typetag = {version = "0.2", optional = true}
+dyn-clone = "1.0.20"
 
 [lints.clippy]
 all = "warn"
 pedantic = "warn"
 nursery = "warn"
-# future_not_send = {level = "allow", priority = -1}

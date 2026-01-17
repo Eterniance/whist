@@ -13,6 +13,7 @@ impl Misere {
     }
 }
 
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Misere {
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         if tricks == 0 {

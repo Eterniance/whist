@@ -19,6 +19,7 @@ impl Emballage {
     }
 }
 
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Emballage {
     fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
         let capot = tricks == Tricks::MAX.into();
@@ -45,8 +46,6 @@ impl Score for Emballage {
 
 #[cfg(test)]
 mod tests {
-    use crate::scoring::Gamemodes;
-
     use super::*;
 
     const EMBALLAGE: Emballage = Emballage {
@@ -61,10 +60,6 @@ mod tests {
         let expected_score = 2;
 
         assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
-        assert_eq!(
-            expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
-        );
     }
 
     #[test]
@@ -73,10 +68,6 @@ mod tests {
         let expected_score = -8;
 
         assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
-        assert_eq!(
-            expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
-        );
     }
 
     #[test]
@@ -85,9 +76,5 @@ mod tests {
         let expected_score = 12;
 
         assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
-        assert_eq!(
-            expected_score,
-            Gamemodes::Emballage(EMBALLAGE).get_single_player_score(tricks)
-        );
     }
 }
