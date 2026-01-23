@@ -1,4 +1,4 @@
-use crate::scoring::{PointsCoefficient, Score};
+use crate::scoring::{PointsCoefficient, Score, Tricks};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +15,15 @@ impl Misere {
 
 #[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Misere {
-    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
-        if tricks == 0 {
+    fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient) {
+        if tricks.get() == 0 {
             return (self.min_points, PointsCoefficient::One);
         }
         (self.min_points, PointsCoefficient::DoubleNeg)
     }
 
-    fn min_tricks(&self) -> i16 {
-        0
+    fn min_tricks(&self) -> Tricks {
+        Tricks::new(0).expect("Within range")
     }
 }
 
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn win() {
-        let tricks = 0;
+        let tricks = Tricks(0);
         let expected_score = 12;
 
         assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
@@ -43,12 +43,12 @@ mod tests {
 
     #[test]
     fn lose() {
-        let tricks = 1;
+        let tricks = Tricks::new(1).expect("Within range");
         let expected_score = -24;
 
         assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
 
-        let tricks = 3;
+        let tricks = Tricks::new(3).expect("Within range");
         assert_eq!(expected_score, MISERE.get_single_player_score(tricks));
     }
 }

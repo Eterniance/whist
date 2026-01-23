@@ -1,4 +1,4 @@
-use crate::scoring::{Score, Emballage, Misere, Seul, TOTAL_TRICKS};
+use crate::scoring::{Emballage, Misere, Score, Seul, Tricks};
 use std::ops::RangeInclusive;
 
 pub mod hand;
@@ -9,30 +9,32 @@ dyn_clone::clone_trait_object!(Score);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Contract {
     pub name: &'static str,
-    pub max_bid: Option<i16>,
+    pub max_bid: Option<Tricks>,
     pub contractors_kind: RangeInclusive<u8>,
     pub gamemode: Box<dyn Score>,
 }
 
 impl Contract {
     #[must_use]
-    pub fn min_tricks(&self) -> i16 {
+    pub fn min_tricks(&self) -> Tricks {
         self.gamemode.min_tricks()
     }
 }
 
 #[must_use]
+#[allow(clippy::missing_panics_doc)]
 pub fn default_contracts() -> Vec<Contract> {
-    let tricks_to_win = 8;
+    let tricks_to_win = Tricks::new(8).expect("Withing range");
     let rules = Emballage::new(tricks_to_win, 2, 1);
     let emballage = Contract {
         name: "Emballage",
-        max_bid: Some(TOTAL_TRICKS),
+        max_bid: Some(Tricks::MAX_TRICKS),
         gamemode: Box::new(rules),
         contractors_kind: 2..=2,
     };
-    let max_tricks_allowed = 8;
-    let rules = Seul::new(6, 6, 3, max_tricks_allowed);
+    let tricks_to_win = Tricks::new(6).expect("Withing range");
+    let max_tricks_allowed = Tricks::new(8).expect("Within range");
+    let rules = Seul::new(tricks_to_win, 6, 3, max_tricks_allowed);
 
     let seul = Contract {
         name: "Seul",
@@ -85,7 +87,9 @@ mod tests {
     fn dutch() {
         let scorables = default_contracts();
         let emballage = &scorables[0];
-        let emballage_score = emballage.gamemode.get_single_player_score(8);
+        let emballage_score = emballage
+            .gamemode
+            .get_single_player_score(Tricks::new(8).expect("Within range"));
 
         let expected_score = 2;
 

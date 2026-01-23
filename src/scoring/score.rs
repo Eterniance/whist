@@ -2,15 +2,20 @@ use crate::{
     players::PlayerId,
     scoring::{PointsCoefficient, Tricks},
 };
-use std::{fmt::Debug, ops::{Div, Neg}};
 use dyn_clone::DynClone;
+use std::{
+    fmt::Debug,
+    ops::{Div, Neg},
+};
 
 #[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Score: Debug + DynClone {
-    fn min_tricks(&self) -> i16;
-    fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient);
+    /// The minimum tricks to win.
+    fn min_tricks(&self) -> Tricks;
+    /// Gives the score based on tricks number.
+    fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient);
 
-    fn get_single_player_score(&self, tricks: i16) -> i16 {
+    fn get_single_player_score(&self, tricks: Tricks) -> i16 {
         let (points, coef) = self.calculate_score(tricks);
         points * i16::from(coef)
     }
@@ -41,7 +46,7 @@ pub trait Score: Debug + DynClone {
         let mut scores = [0; 4];
         let mut already_set_mask = 0;
         for (id, tricks) in players_and_tricks {
-            let score = self.get_single_player_score(i16::from(*tricks));
+            let score = self.get_single_player_score(*tricks);
             let idx = id.idx();
             scores[idx] = score;
             already_set_mask |= 1 << idx;
@@ -74,18 +79,18 @@ mod tests {
     struct Scorable;
 
     impl Score for Scorable {
-        fn min_tricks(&self) -> i16 {
-            0
+        fn min_tricks(&self) -> Tricks {
+            Tricks(0)
         }
 
-        fn calculate_score(&self, tricks: i16) -> (i16, PointsCoefficient) {
-            let coef = match tricks {
+        fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient) {
+            let coef = match tricks.get() {
                 7..13 => PointsCoefficient::One,
                 13 => PointsCoefficient::Double,
                 0..=6 => PointsCoefficient::DoubleNeg,
                 _ => unreachable!(),
             };
-            (tricks, coef)
+            (tricks.into(), coef)
         }
     }
 

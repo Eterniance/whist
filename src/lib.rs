@@ -1,7 +1,7 @@
 pub mod contracts;
 pub mod players;
 pub mod scoring;
-pub use scoring::gamemodes;
+pub use scoring::{Tricks, gamemodes};
 
 use thiserror::Error;
 
@@ -22,8 +22,22 @@ pub enum GameError {
 }
 
 #[cfg(test)]
-mod test_utils {
-    
+pub(crate) mod test_utils {
+
+    #[macro_export]
+    macro_rules! p {
+    ( $($idx:literal),+ $(,)? ) => {
+        [$(PlayerId::new($idx)),+]
+    };
+}
+
+    #[macro_export]
+    macro_rules! t {
+        ($v:literal) => {
+            Tricks::new($v).unwrap()
+        };
+    }
+
     #[macro_export]
     macro_rules! p_and_t {
         ( $($trick:literal),+ $(,)? ) => {
@@ -31,7 +45,7 @@ mod test_utils {
                 #[allow(unused)]
                 [ $(
                     {
-                        let pair = (PlayerId(idx), Tricks::try_from($trick).unwrap());
+                        let pair = (PlayerId(idx), $crate::t!($trick));
                         idx += 1;
                         pair
                     },
