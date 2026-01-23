@@ -1,3 +1,3 @@
 #[allow(clippy::module_inception)]
 pub mod players;
-pub use players::{Player, PlayerId, Players};
+pub use players::{Player, PlayerId, Players, PlayersBuilder};

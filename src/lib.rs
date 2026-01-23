@@ -7,12 +7,12 @@ use thiserror::Error;
 
 use crate::contracts::hand::{HandBuildError, InputError};
 
-const TOTAL_PLAYER: usize = 4;
+const TOTAL_PLAYERS: usize = 4;
 
 #[derive(Debug, Error)]
 pub enum GameError {
-    #[error("Too many players have been selected")]
-    TooManyPlayer,
+    #[error("Expected {TOTAL_PLAYERS} players, got {0}")]
+    PlayersNotSet(usize),
     #[error("This player name already exists")]
     PlayerAlreadyExists,
     #[error(transparent)]
@@ -27,7 +27,7 @@ pub(crate) mod test_utils {
     #[macro_export]
     macro_rules! p {
     ( $($idx:literal),+ $(,)? ) => {
-        [$(PlayerId::new($idx)),+]
+        [$(PlayerId($idx)),+]
     };
 }
 

@@ -1,17 +1,30 @@
-use crate::{GameError, contracts::hand::InputError};
+use crate::{GameError, TOTAL_PLAYERS, contracts::hand::InputError};
 use itertools::Itertools;
 use std::collections::HashMap;
 
+/// Unique player ID.
+///
+/// This corresponds to the player arrival order.
+///
+/// # Example
+/// ```
+/// use whist::players::PlayersBuilder;
+///
+/// let mut players_builder = PlayersBuilder::default();
+/// for p in ["A", "B", "C", "D"].into_iter() {
+///     players_builder.add_player(&p).unwrap();
+/// }
+/// let mut players = players_builder.build().unwrap();
+/// let id = players.get_id("A").unwrap();
+/// assert_eq!(id.idx(), 0);
+/// let id = players.get_id("C").unwrap();
+/// assert_eq!(id.idx(), 2);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PlayerId(pub(crate) usize);
 
 impl PlayerId {
-    #[must_use]
-    pub const fn new(idx: usize) -> Self {
-        Self(idx)
-    }
-
     #[must_use]
     pub const fn idx(&self) -> usize {
         self.0
@@ -36,32 +49,15 @@ impl Player {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Players {
-    pub list: Vec<Player>,
+pub struct PlayersBuilder {
+    players: Vec<Player>,
     next_idx: usize,
     name_to_id: HashMap<String, PlayerId>,
 }
 
-impl Players {
-    /// Creates a `Players` collection from a fixed list of four player names.
-    ///
-    /// The provided values are converted to strings and added in order using the
-    /// standard validation rules.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if adding any player fails, for example if a name is
-    /// duplicated or if the maximum number of players is exceeded.
-    pub fn from_list(names: &[impl std::string::ToString; 4]) -> Result<Self, GameError> {
-        let mut players = Self::default();
-        for n in names {
-            players.add_player(n.to_string())?;
-        }
-        Ok(players)
-    }
-
+impl PlayersBuilder {
     /// Adds a new player to the game.
     ///
     /// A player is created with the given name and assigned a unique internal
@@ -71,19 +67,45 @@ impl Players {
     ///
     /// Returns an `GameError` if the game already has four players or if the player
     /// already exists.
-    pub fn add_player(&mut self, name: String) -> Result<usize, GameError> {
-        let player = Player::new(name.clone(), self.next_idx);
-        if self.list.len() >= 4 {
-            return Err(GameError::TooManyPlayer);
-        } else if self.name_to_id.keys().contains(&name) {
+    pub fn add_player(&mut self, name: &impl ToString) -> Result<usize, GameError> {
+        if self.players.len() >= TOTAL_PLAYERS {
+            return Err(GameError::PlayersNotSet(self.players.len()));
+        }
+        if self.name_to_id.keys().contains(&name.to_string()) {
             return Err(GameError::PlayerAlreadyExists);
         }
-        self.name_to_id.insert(name, PlayerId(self.next_idx));
+        let player = Player::new(name.to_string(), self.next_idx);
+        self.name_to_id
+            .insert(name.to_string(), PlayerId(self.next_idx));
         self.next_idx += 1;
-        self.list.push(player);
-        Ok(self.list.len())
+        self.players.push(player);
+        Ok(self.players.len())
     }
 
+    /// Consume the builder into `Players`
+    ///
+    /// # Errors
+    /// This function fails if there are not `TOTAL_PLAYERS` players set.
+    pub fn build(self) -> Result<Players, GameError> {
+        let list = self
+            .players
+            .try_into()
+            .map_err(|v: Vec<_>| GameError::PlayersNotSet(v.len()))?;
+        Ok(Players {
+            list,
+            name_to_id: self.name_to_id,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Players {
+    pub list: [Player; TOTAL_PLAYERS],
+    name_to_id: HashMap<String, PlayerId>,
+}
+
+impl Players {
     #[must_use]
     pub fn get_id(&self, name: &str) -> Option<PlayerId> {
         self.name_to_id.get(name).cloned()
@@ -100,7 +122,7 @@ impl Players {
     /// # Errors
     /// This function returns early with error if the sum of every elements in `scores`
     /// is non zero.
-    pub fn update_score(&mut self, scores: &[i16; 4]) -> Result<(), InputError> {
+    pub fn update_score(&mut self, scores: &[i16; TOTAL_PLAYERS]) -> Result<(), InputError> {
         if scores.iter().sum::<i16>() != 0 {
             return Err(InputError::WrongScore);
         }
@@ -113,13 +135,18 @@ impl Players {
 
 #[cfg(test)]
 mod tests {
-    use super::{PlayerId, Players};
-    use crate::{contracts::default_contracts, p_and_t, scoring::Tricks};
+    use super::{PlayerId, PlayersBuilder};
+    use crate::{GameError, contracts::default_contracts, p_and_t, scoring::Tricks};
 
     #[test]
-    fn test_players() {
+    fn players_builder() -> Result<(), GameError> {
         let contracts = default_contracts();
-        let mut players = Players::from_list(&["A", "B", "C", "D"]).unwrap();
+        let mut players_builder = PlayersBuilder::default();
+        for (i, p) in ["A", "B", "C", "D"].into_iter().enumerate() {
+            let u = players_builder.add_player(&p)?;
+            assert_eq!(u, i + 1);
+        }
+        let mut players = players_builder.build()?;
 
         let p_and_t = p_and_t!(8, 8);
         let scores = contracts[0]
@@ -132,5 +159,6 @@ mod tests {
         assert_eq!(players.list[1].score, 2);
         assert_eq!(players.list[2].score, -2);
         assert_eq!(players.list[3].score, -2);
+        Ok(())
     }
 }

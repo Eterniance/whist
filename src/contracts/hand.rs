@@ -1,4 +1,4 @@
-use crate::{Tricks, contracts::Contract, players::PlayerId};
+use crate::{TOTAL_PLAYERS, Tricks, contracts::Contract, players::PlayerId};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -52,7 +52,7 @@ impl Hand {
     }
 
     #[must_use]
-    pub fn as_recap(self, scores: [i16; 4]) -> HandRecap {
+    pub fn as_recap(self, scores: [i16; TOTAL_PLAYERS]) -> HandRecap {
         HandRecap {
             scores,
             gamemode_name: self.gamemode_name().to_string(),
@@ -211,7 +211,12 @@ pub struct HandRecap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{gamemodes::Emballage, p, scoring::{Misere, Seul}, t};
+    use crate::{
+        gamemodes::Emballage,
+        p,
+        scoring::{Misere, Seul},
+        t,
+    };
 
     fn emballage() -> Contract {
         let rules = Emballage::new(t!(8), 2, 1);
@@ -308,7 +313,7 @@ mod tests {
         assert_eq!(hand.get_score(), 12);
     }
 
-        #[test]
+    #[test]
     fn adjusted_tricks_without_bid() {
         let contract = misere();
 

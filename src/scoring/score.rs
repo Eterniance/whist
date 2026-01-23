@@ -1,4 +1,5 @@
 use crate::{
+    TOTAL_PLAYERS,
     players::PlayerId,
     scoring::{PointsCoefficient, Tricks},
 };
@@ -39,11 +40,12 @@ pub trait Score: Debug + DynClone {
     /// # Panics
     /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
     /// - Panics if internal invariants are violated (final score sum is not zero).
+    #[allow(clippy::cast_possible_truncation,clippy::cast_possible_wrap)]
     fn get_each_player_score(
         &self,
         players_and_tricks: &[(PlayerId, Tricks)],
-    ) -> Result<[i16; 4], Box<dyn std::error::Error>> {
-        let mut scores = [0; 4];
+    ) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
+        let mut scores = [0; TOTAL_PLAYERS];
         let mut already_set_mask = 0;
         for (id, tricks) in players_and_tricks {
             let score = self.get_single_player_score(*tricks);
@@ -52,18 +54,17 @@ pub trait Score: Debug + DynClone {
             already_set_mask |= 1 << idx;
         }
         let others_score = scores.iter().sum::<i16>().neg();
-        let div = 4 - i16::try_from(players_and_tricks.len()).expect("Length is between 0 and 4");
+        let div = TOTAL_PLAYERS as i16 - i16::try_from(players_and_tricks.len()).expect("Length should be less than i16::MAX");
 
         if others_score % div != 0 {
             return Err("Score sum is non zero".into());
         }
         let others_score = others_score.div(div);
 
-        (0..4)
+        (0..TOTAL_PLAYERS)
             .filter(|&n| (already_set_mask & (1 << n)) == 0)
             .for_each(|i| scores[i] = others_score);
 
-        // assert_eq!(scores.iter().sum::<i16>(), 0);
         Ok(scores)
     }
 }
@@ -76,8 +77,10 @@ mod tests {
     use super::*;
 
     #[derive(Debug, Clone)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     struct Scorable;
 
+    #[cfg_attr(feature = "serde", typetag::serde)]
     impl Score for Scorable {
         fn min_tricks(&self) -> Tricks {
             Tricks(0)

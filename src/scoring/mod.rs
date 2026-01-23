@@ -32,6 +32,7 @@ impl From<Infallible> for TricksOutOfRange {
 /// respectively representing the minimum and maximum possible tricks in a game of Whist.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Tricks(u8);
 
 impl Tricks {
