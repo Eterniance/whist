@@ -72,7 +72,7 @@ pub trait Score: Debug + DynClone {
 #[cfg(test)]
 #[allow(unused)]
 mod tests {
-    use crate::p_and_t;
+    use crate::{Tricks, p_and_t};
 
     use super::*;
 

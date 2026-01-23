@@ -1,11 +1,15 @@
 pub mod contracts;
 pub mod players;
-pub mod scoring;
-pub use scoring::{Tricks, gamemodes};
+mod scoring;
+
+pub use self::{
+    scoring::*,
+    contracts::*,
+};
+use crate::contracts::hand::{HandBuildError, InputError};
 
 use thiserror::Error;
 
-use crate::contracts::hand::{HandBuildError, InputError};
 
 const TOTAL_PLAYERS: usize = 4;
 
