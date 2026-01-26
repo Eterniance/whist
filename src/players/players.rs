@@ -20,7 +20,7 @@ use std::collections::HashMap;
 /// let id = players.get_id("C").unwrap();
 /// assert_eq!(id.idx(), 2);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PlayerId(pub(crate) usize);
 
@@ -108,7 +108,7 @@ pub struct Players {
 impl Players {
     #[must_use]
     pub fn get_id(&self, name: &str) -> Option<PlayerId> {
-        self.name_to_id.get(name).cloned()
+        self.name_to_id.get(name).copied()
     }
 
     #[must_use]

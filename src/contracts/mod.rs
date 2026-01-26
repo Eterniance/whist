@@ -1,7 +1,12 @@
-use crate::scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase};
+use crate::{
+    CollectedTricks, TOTAL_PLAYERS,
+    players::PlayerId,
+    scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase},
+};
 use std::ops::RangeInclusive;
 
 pub mod hand;
+pub use hand::{Hand, HandBuildError, HandRecap};
 
 dyn_clone::clone_trait_object!(Score);
 
@@ -18,6 +23,54 @@ impl Contract {
     #[must_use]
     pub fn min_tricks(&self) -> Tricks {
         self.gamemode.min_tricks()
+    }
+
+    /// Compute the score for each player. The array position corresponds to the player ID.
+    ///
+    /// # Errors
+    /// Returns an error if the remaining score cannot be evenly distributed among the unspecified
+    /// players (i.e., the total score is not divisible by the number of missing players).
+    ///
+    /// # Panics
+    /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
+    /// - Panics if internal invariants are violated (final score sum is not zero).
+    pub fn get_scores(
+        &self,
+        contractors_tricks: &[(PlayerId, Tricks)],
+        bid: Option<Tricks>,
+    ) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
+        if contractors_tricks.is_empty() {
+            return Err("Expected non zero length".into());
+        }
+        let players_and_tricks: Vec<_> = contractors_tricks
+            .iter()
+            .map(|&(id, tricks)| (id, self.compute_tricks(tricks, bid)))
+            .collect();
+        self.gamemode.get_each_player_score(&players_and_tricks)
+    }
+
+    /// The tricks number adjusted with the bid.
+    ///
+    /// Clamp the tricks number to the maximum allowed tricks if any
+    /// and subtract the bid delta from the default minimum tricks.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    fn compute_tricks(&self, tricks: Tricks, bid: Option<Tricks>) -> CollectedTricks {
+        let clamped = match self.max_bid {
+            None => return CollectedTricks::from_tricks(tricks),
+            Some(max) => {
+                let inner = tricks.get().clamp(0, max.get());
+                Tricks::new(inner).expect("inner has been clamp between Tricks range")
+            }
+        };
+
+        let effective = bid.map_or(clamped, |bid| {
+            let diff = bid
+                .checked_sub(self.min_tricks())
+                .expect("Bid should be greater than min_tricks");
+            clamped.saturating_sub(diff)
+        });
+        CollectedTricks::new(tricks, effective)
     }
 }
 
@@ -95,5 +148,68 @@ mod tests {
         let expected_score = 2;
 
         assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn adjusted_tricks_without_bid() {
+        let contract = default_contracts()
+            .into_iter()
+            .find(|c| c.name == "Petite Misere")
+            .unwrap();
+
+        let tricks = t!(5);
+        let computed_tricks = contract.compute_tricks(tricks, Some(t!(6)));
+        assert_eq!(computed_tricks.absolute, computed_tricks.effective);
+        assert_eq!(computed_tricks.absolute, tricks);
+    }
+
+    #[test]
+    fn adjusted_tricks_with_bid() {
+        let contract = default_contracts()
+            .into_iter()
+            .find(|c| c.name == "Emballage")
+            .unwrap();
+
+        let tricks = t!(10);
+        let bid = t!(9);
+        let computed_tricks = contract.compute_tricks(tricks, Some(bid));
+        assert_eq!(computed_tricks.absolute, tricks);
+        assert_eq!(computed_tricks.effective, bid);
+    }
+
+    #[test]
+    fn adjusted_tricks_with_bid_saturating() {
+        let contract = default_contracts()
+            .into_iter()
+            .find(|c| c.name == "Emballage")
+            .unwrap();
+
+        let tricks = t!(3);
+        let bid = Some(Tricks::MAX_TRICKS);
+
+        let computed_tricks = contract.compute_tricks(tricks, bid);
+
+        assert_eq!(computed_tricks.absolute, tricks);
+        assert_eq!(computed_tricks.effective, t!(0));
+    }
+
+    #[test]
+    fn adjusted_tricks_clamp() {
+        let contract = default_contracts()
+            .into_iter()
+            .find(|c| c.name == "Seul")
+            .unwrap();
+
+        let tricks = t!(12);
+        let bid = t!(7);
+
+        let computed_tricks = contract.compute_tricks(tricks, Some(bid));
+
+        let min = contract.min_tricks();
+        let diff = bid.checked_sub(min).unwrap();
+        let expected = t!(8).saturating_sub(diff);
+
+        assert_eq!(computed_tricks.absolute, tricks);
+        assert_eq!(computed_tricks.effective, expected);
     }
 }

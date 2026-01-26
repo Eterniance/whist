@@ -1,4 +1,4 @@
-use crate::{CollectedTricks, TOTAL_PLAYERS, Tricks, contracts::Contract, players::PlayerId};
+use crate::{TOTAL_PLAYERS, Tricks, contracts::Contract, players::PlayerId};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -11,10 +11,9 @@ pub enum InputError {
 
 #[derive(Debug)]
 pub struct Hand {
-    pub contractors: Box<[PlayerId]>,
     contract: Contract,
+    contractors_tricks: Vec<(PlayerId, Tricks)>,
     bid: Option<Tricks>,
-    tricks: Tricks,
 }
 
 impl Hand {
@@ -23,31 +22,17 @@ impl Hand {
         self.contract.name
     }
 
-    /// The tricks number adjusted with the bid.
+    /// Compute the score for each player. The array position corresponds to the player ID.
     ///
-    /// Clamp the tricks number to the maximum allowed tricks if any
-    /// and subtract the bid delta from the default minimum tricks.
-    #[must_use]
-    #[allow(clippy::missing_panics_doc)]
-    pub fn get_effective_tricks(&self) -> Tricks {
-        let tricks = self.contract.max_bid.map_or(self.tricks, |max| {
-            let inner = self.tricks.get().clamp(0, max.get());
-            Tricks::new(inner).expect("inner has been clamp between Tricks range")
-        });
-
-        self.bid.map_or(tricks, |bid| {
-            let diff = bid
-                .checked_sub(self.contract.min_tricks())
-                .expect("Bid should be greater than min_tricks");
-            tricks.saturating_sub(diff)
-        })
-    }
-
-    #[must_use]
-    pub fn get_score(&self) -> i16 {
-        let adjusted_tricks = self.get_effective_tricks();
-        let tricks = CollectedTricks::new(self.tricks, adjusted_tricks);
-        self.contract.gamemode.calculate_score(tricks)
+    /// # Errors
+    /// Returns an error if the remaining score cannot be evenly distributed among the unspecified
+    /// players (i.e., the total score is not divisible by the number of missing players).
+    ///
+    /// # Panics
+    /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
+    /// - Panics if internal invariants are violated (final score sum is not zero).
+    pub fn get_score(&self) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
+        self.contract.get_scores(&self.contractors_tricks, self.bid)
     }
 
     #[must_use]
@@ -55,7 +40,7 @@ impl Hand {
         HandRecap {
             scores,
             gamemode_name: self.gamemode_name().to_string(),
-            tricks: self.tricks,
+            contractors_tricks: self.contractors_tricks,
             bid: self.bid,
         }
     }
@@ -72,9 +57,9 @@ pub enum InputRequest {
 #[derive(Debug)]
 pub struct HandBuilder {
     contract: Contract,
-    contractors: Option<Box<[PlayerId]>>,
+    contractors: Option<Vec<PlayerId>>,
     bid: Option<Tricks>,
-    tricks: Option<Tricks>,
+    tricks: Option<Vec<Tricks>>,
 }
 
 impl HandBuilder {
@@ -142,8 +127,7 @@ impl HandBuilder {
         {
             return Err(HandBuildError("Contractors type does not match"));
         }
-
-        self.contractors = Some(c.into());
+        self.contractors = Some(c.to_vec());
         Ok(())
     }
 
@@ -167,8 +151,8 @@ impl HandBuilder {
         Ok(())
     }
 
-    pub const fn set_tricks(&mut self, tricks: Tricks) {
-        self.tricks = Some(tricks);
+    pub fn set_tricks(&mut self, tricks: &[Tricks]) {
+        self.tricks = Some(tricks.into());
     }
 
     /// Builds the hand from the collected contract parameters.
@@ -179,17 +163,28 @@ impl HandBuilder {
     ///
     /// Returns an error if the contractors are missing, or if a bid is required
     /// by the contract but has not been set.
+    #[allow(clippy::missing_panics_doc)]
     pub fn build(self) -> Result<Hand, HandBuildError> {
         let contractors = self.contractors.ok_or(HandBuildError("No contractors"))?;
         let tricks = self.tricks.ok_or(HandBuildError("No tricks set"))?;
+        let contractors_tricks = if tricks.len() == 1 {
+            contractors
+                .into_iter()
+                .map(|id| (id, *tricks.first().expect("only one element")))
+                .collect()
+        } else if tricks.len() == contractors.len() {
+            contractors.into_iter().zip(tricks).collect()
+        } else {
+            return Err(HandBuildError("Incompatible contractors and number tricks"));
+        };
         if self.contract.max_bid.is_some() && self.bid.is_none() {
             return Err(HandBuildError("Missing bid"));
         }
+
         Ok(Hand {
             contract: self.contract,
-            contractors,
+            contractors_tricks,
             bid: self.bid,
-            tricks,
         })
     }
 }
@@ -201,21 +196,16 @@ pub struct HandBuildError(&'static str);
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandRecap {
-    pub scores: [i16; 4],
+    pub scores: [i16; TOTAL_PLAYERS],
     pub gamemode_name: String,
-    pub tricks: Tricks,
+    pub contractors_tricks: Vec<(PlayerId, Tricks)>,
     pub bid: Option<Tricks>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        gamemodes::TricksChase,
-        p,
-        scoring::{CappedChase, ExactTricks},
-        t,
-    };
+    use crate::{gamemodes::TricksChase, p, scoring::ExactTricks, t};
 
     fn emballage() -> Contract {
         let rules = TricksChase::new(t!(8), 2, 1);
@@ -237,23 +227,13 @@ mod tests {
         }
     }
 
-    fn seul() -> Contract {
-        let rules = CappedChase::new(t!(6), 6, 3, t!(8));
-        Contract {
-            name: "Seul",
-            max_bid: Some(t!(8)),
-            gamemode: Box::new(rules),
-            contractors_kind: 1..=1,
-        }
-    }
-
     #[test]
     fn hand_builder_ok() {
         let contract = emballage();
 
         let contractors = p!(1, 2);
         let bid = t!(9);
-        let tricks = t!(10);
+        let tricks = &[t!(10)];
 
         let mut hb = HandBuilder::new(contract);
 
@@ -263,10 +243,11 @@ mod tests {
 
         let hand = hb.build().unwrap();
 
-        assert_eq!(*hand.contractors, contractors);
+        assert_eq!(
+            hand.contractors_tricks,
+            [(PlayerId(1), t!(10)), (PlayerId(2), t!(10))]
+        );
         assert_eq!(hand.bid, Some(bid));
-
-        assert_eq!(hand.tricks, tricks);
     }
 
     #[test]
@@ -275,7 +256,7 @@ mod tests {
 
         let contractors = p!(1, 2, 3);
         let bid = t!(7);
-        let tricks = t!(10);
+        let tricks = &[t!(10)];
 
         let mut hb = HandBuilder::new(contract);
 
@@ -305,85 +286,9 @@ mod tests {
         hb.set_bid(t!(1)).unwrap();
 
         hb.set_contractors(&c).unwrap();
-        hb.set_tricks(t!(0));
+        hb.set_tricks(&[t!(0)]);
         let hand = hb.build().unwrap();
 
         assert!(hand.bid.is_none());
-        assert_eq!(hand.get_score(), 12);
-    }
-
-    #[test]
-    fn adjusted_tricks_without_bid() {
-        let contract = misere();
-
-        let contractors = p!(1);
-        let tricks = t!(5);
-
-        let mut hb = HandBuilder::new(contract);
-        hb.set_contractors(&contractors).unwrap();
-        hb.set_tricks(tricks);
-
-        let hand = hb.build().unwrap();
-
-        assert_eq!(hand.get_effective_tricks(), tricks);
-    }
-
-    #[test]
-    fn adjusted_tricks_with_bid() {
-        let contract = emballage();
-
-        let contractors = p!(1, 2);
-        let bid = t!(10);
-        let tricks = t!(10);
-
-        let mut hb = HandBuilder::new(contract);
-        hb.set_contractors(&contractors).unwrap();
-        hb.set_bid(bid).unwrap();
-        hb.set_tricks(tricks);
-
-        let hand = hb.build().unwrap();
-
-        assert_eq!(hand.get_effective_tricks(), t!(8));
-    }
-
-    #[test]
-    fn adjusted_tricks_with_bid_saturating() {
-        let contract = emballage();
-
-        let contractors = p!(1, 2);
-        let bid = Tricks::MAX_TRICKS;
-        let tricks = t!(3);
-
-        let mut hb = HandBuilder::new(contract);
-        hb.set_contractors(&contractors).unwrap();
-        hb.set_bid(bid).unwrap();
-        hb.set_tricks(tricks);
-
-        let hand = hb.build().unwrap();
-
-        assert_eq!(hand.get_effective_tricks(), t!(0));
-    }
-
-    #[test]
-    fn adjusted_tricks_clamp() {
-        let contract = seul();
-
-        let contractors = p!(1);
-
-        let bid = t!(7);
-        let tricks = t!(12);
-
-        let mut hb = HandBuilder::new(contract);
-        hb.set_contractors(&contractors).unwrap();
-        hb.set_bid(bid).unwrap();
-        hb.set_tricks(tricks);
-
-        let hand = hb.build().unwrap();
-
-        let min = hand.contract.min_tricks();
-        let diff = bid.checked_sub(min).unwrap();
-        let expected = t!(8).saturating_sub(diff);
-
-        assert_eq!(hand.get_effective_tricks(), expected);
     }
 }

@@ -3,7 +3,7 @@ pub mod players;
 mod scoring;
 
 pub use self::{contracts::*, scoring::*};
-use crate::contracts::hand::{HandBuildError, InputError};
+pub use crate::contracts::hand::{HandBuildError, InputError};
 
 use thiserror::Error;
 

@@ -146,7 +146,8 @@ impl Display for Tricks {
 ///
 /// If a player make a bid of `Tricks(9)` in game with `Tricks(8)` required and achieve to collect
 /// `Tricks(9)`, it is equivalent in scoring terms of collecting `Tricks(8)` in a game of `Tricks(8)`.
-/// In both cases, the effective `Tricks` is 8.
+/// In both cases, the effective `Tricks` is 8. If the maximum allowed tricks is capped, the effective value
+/// will be clamped accordingly.
 ///
 /// The absolute field is the actual `Tricks` number collected. In the previous example, it would respectively
 /// be `Tricks(9)` and `Tricks(8)`. This information is useful for calculating double points scenarios.
