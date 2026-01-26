@@ -1,14 +1,17 @@
-use crate::{CollectedTricks, scoring::{Score, Tricks}};
+use crate::{
+    CollectedTricks,
+    scoring::{Score, Tricks},
+};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Emballage {
+pub struct TricksChase {
     tricks_to_win: Tricks,
     min_points: i16,
     points_per_suppl_trick: i16,
 }
 
-impl Emballage {
+impl TricksChase {
     #[must_use]
     pub const fn new(tricks_to_win: Tricks, min_points: i16, points_per_suppl_trick: i16) -> Self {
         Self {
@@ -20,7 +23,7 @@ impl Emballage {
 }
 
 #[cfg_attr(feature = "serde", typetag::serde)]
-impl Score for Emballage {
+impl Score for TricksChase {
     fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
         let capot = tricks.absolute == Tricks::MAX_TRICKS;
 
@@ -28,11 +31,9 @@ impl Score for Emballage {
         let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
 
         match suppl_tricks {
-            0.. if capot => {
-                2*(points - self.points_per_suppl_trick)
-            }
+            0.. if capot => 2 * (points - self.points_per_suppl_trick),
             0.. => points,
-            _ => -2*points,
+            _ => -2 * points,
         }
     }
 
@@ -45,7 +46,7 @@ impl Score for Emballage {
 mod tests {
     use super::*;
 
-    const EMBALLAGE: Emballage = Emballage {
+    const EMBALLAGE: TricksChase = TricksChase {
         tricks_to_win: Tricks(8),
         min_points: 2,
         points_per_suppl_trick: 1,

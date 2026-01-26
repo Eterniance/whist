@@ -1,6 +1,7 @@
-mod emballage;
-pub use crate::scoring::gamemodes::emballage::Emballage;
-mod seul;
-pub use seul::Seul;
-mod misere;
-pub use misere::Misere;
+mod capped_chase;
+mod exact_tricks;
+mod tricks_chase;
+
+pub use capped_chase::CappedChase;
+pub use exact_tricks::ExactTricks;
+pub use tricks_chase::TricksChase;

@@ -47,9 +47,7 @@ impl Hand {
     pub fn get_score(&self) -> i16 {
         let adjusted_tricks = self.get_effective_tricks();
         let tricks = CollectedTricks::new(self.tricks, adjusted_tricks);
-        self.contract
-            .gamemode
-            .calculate_score(tricks)
+        self.contract.gamemode.calculate_score(tricks)
     }
 
     #[must_use]
@@ -213,14 +211,14 @@ pub struct HandRecap {
 mod tests {
     use super::*;
     use crate::{
-        gamemodes::Emballage,
+        gamemodes::TricksChase,
         p,
-        scoring::{Misere, Seul},
+        scoring::{CappedChase, ExactTricks},
         t,
     };
 
     fn emballage() -> Contract {
-        let rules = Emballage::new(t!(8), 2, 1);
+        let rules = TricksChase::new(t!(8), 2, 1);
         Contract {
             name: "Emballage",
             max_bid: Some(Tricks::MAX_TRICKS),
@@ -230,7 +228,7 @@ mod tests {
     }
 
     fn misere() -> Contract {
-        let rules = Misere::new(12);
+        let rules = ExactTricks::new(12);
         Contract {
             name: "Misere",
             max_bid: None,
@@ -240,7 +238,7 @@ mod tests {
     }
 
     fn seul() -> Contract {
-        let rules = Seul::new(t!(6), 6, 3, t!(8));
+        let rules = CappedChase::new(t!(6), 6, 3, t!(8));
         Contract {
             name: "Seul",
             max_bid: Some(t!(8)),

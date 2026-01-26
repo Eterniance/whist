@@ -1,4 +1,4 @@
-use crate::scoring::{Emballage, Misere, Score, Seul, Tricks};
+use crate::scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase};
 use std::ops::RangeInclusive;
 
 pub mod hand;
@@ -25,7 +25,7 @@ impl Contract {
 #[allow(clippy::missing_panics_doc)]
 pub fn default_contracts() -> Vec<Contract> {
     let tricks_to_win = Tricks::new(8).expect("Withing range");
-    let rules = Emballage::new(tricks_to_win, 2, 1);
+    let rules = TricksChase::new(tricks_to_win, 2, 1);
     let emballage = Contract {
         name: "Emballage",
         max_bid: Some(Tricks::MAX_TRICKS),
@@ -34,7 +34,7 @@ pub fn default_contracts() -> Vec<Contract> {
     };
     let tricks_to_win = Tricks::new(6).expect("Withing range");
     let max_tricks_allowed = Tricks::new(8).expect("Within range");
-    let rules = Seul::new(tricks_to_win, 6, 3, max_tricks_allowed);
+    let rules = CappedChase::new(tricks_to_win, 6, 3, max_tricks_allowed);
 
     let seul = Contract {
         name: "Seul",
@@ -43,7 +43,7 @@ pub fn default_contracts() -> Vec<Contract> {
         contractors_kind: 1..=1,
     };
 
-    let rules = Misere::new(12);
+    let rules = ExactTricks::new(12);
 
     let petite_misere = Contract {
         name: "Petite Misere",
@@ -52,7 +52,7 @@ pub fn default_contracts() -> Vec<Contract> {
         gamemode: Box::new(rules),
     };
 
-    let rules = Misere::new(24);
+    let rules = ExactTricks::new(24);
 
     let grande_misere = Contract {
         name: "Grande Misere",
@@ -61,7 +61,7 @@ pub fn default_contracts() -> Vec<Contract> {
         gamemode: Box::new(rules),
     };
 
-    let rules = Misere::new(36);
+    let rules = ExactTricks::new(36);
 
     let grande_misere_sur_trou = Contract {
         name: "Grande Misere sur trou",

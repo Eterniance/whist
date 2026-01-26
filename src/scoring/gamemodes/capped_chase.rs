@@ -5,14 +5,14 @@ use crate::{
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Seul {
+pub struct CappedChase {
     tricks_to_win: Tricks,
     min_points: i16,
     points_per_suppl_trick: i16,
     max_tricks_allowed: Tricks,
 }
 
-impl Seul {
+impl CappedChase {
     #[must_use]
     pub const fn new(
         tricks_to_win: Tricks,
@@ -30,7 +30,7 @@ impl Seul {
 }
 
 #[cfg_attr(feature = "serde", typetag::serde)]
-impl Score for Seul {
+impl Score for CappedChase {
     fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
         let suppl_tricks = tricks
             .effective
@@ -41,7 +41,7 @@ impl Score for Seul {
         if let 0.. = suppl_tricks {
             self.min_points + suppl_tricks * self.points_per_suppl_trick
         } else {
-            -2* (self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick)
+            -2 * (self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick)
         }
     }
 
@@ -54,7 +54,7 @@ impl Score for Seul {
 mod tests {
     use super::*;
 
-    const SEUL: Seul = Seul {
+    const SEUL: CappedChase = CappedChase {
         tricks_to_win: Tricks(6),
         min_points: 6,
         points_per_suppl_trick: 3,
