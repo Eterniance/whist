@@ -4,8 +4,7 @@ mod tricks;
 
 pub use gamemodes::*;
 pub use score::Score;
-pub use tricks::Tricks;
-
+pub use tricks::{CollectedTricks, Tricks};
 
 #[repr(i8)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

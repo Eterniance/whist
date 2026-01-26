@@ -2,14 +2,10 @@ pub mod contracts;
 pub mod players;
 mod scoring;
 
-pub use self::{
-    scoring::*,
-    contracts::*,
-};
+pub use self::{contracts::*, scoring::*};
 use crate::contracts::hand::{HandBuildError, InputError};
 
 use thiserror::Error;
-
 
 const TOTAL_PLAYERS: usize = 4;
 
@@ -49,7 +45,8 @@ pub(crate) mod test_utils {
                 #[allow(unused)]
                 [ $(
                     {
-                        let pair = (PlayerId(idx), $crate::t!($trick));
+                        let collected = $crate::scoring::CollectedTricks::from_tricks($crate::t!($trick));
+                        let pair = (PlayerId(idx), collected);
                         idx += 1;
                         pair
                     },

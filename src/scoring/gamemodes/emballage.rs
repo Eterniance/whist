@@ -1,4 +1,4 @@
-use crate::scoring::{PointsCoefficient, Score, Tricks};
+use crate::{CollectedTricks, scoring::{Score, Tricks}};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -21,22 +21,19 @@ impl Emballage {
 
 #[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Emballage {
-    fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient) {
-        let capot = tricks == Tricks::MAX_TRICKS;
+    fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
+        let capot = tricks.absolute == Tricks::MAX_TRICKS;
 
-        let suppl_tricks = tricks.as_i16() - self.tricks_to_win.as_i16();
-        let mut points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
+        let suppl_tricks = tricks.effective.as_i16() - self.tricks_to_win.as_i16();
+        let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
 
-        let result = match suppl_tricks {
+        match suppl_tricks {
             0.. if capot => {
-                points -= self.points_per_suppl_trick;
-                PointsCoefficient::Double
+                2*(points - self.points_per_suppl_trick)
             }
-            0.. => PointsCoefficient::One,
-            _ => PointsCoefficient::DoubleNeg,
-        };
-
-        (points, result)
+            0.. => points,
+            _ => -2*points,
+        }
     }
 
     fn min_tricks(&self) -> Tricks {
@@ -56,25 +53,25 @@ mod tests {
 
     #[test]
     fn test_emballage_win() {
-        let tricks = Tricks(8);
+        let tricks = CollectedTricks::from_tricks(Tricks(8));
         let expected_score = 2;
 
-        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.calculate_score(tricks));
     }
 
     #[test]
     fn test_emballage_lost() {
-        let tricks = Tricks(6);
+        let tricks = CollectedTricks::from_tricks(Tricks(6));
         let expected_score = -8;
 
-        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.calculate_score(tricks));
     }
 
     #[test]
     fn test_emballage_capot() {
-        let tricks = Tricks(13);
+        let tricks = CollectedTricks::from_tricks(Tricks(13));
         let expected_score = 12;
 
-        assert_eq!(expected_score, EMBALLAGE.get_single_player_score(tricks));
+        assert_eq!(expected_score, EMBALLAGE.calculate_score(tricks));
     }
 }

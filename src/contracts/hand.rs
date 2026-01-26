@@ -1,4 +1,4 @@
-use crate::{TOTAL_PLAYERS, Tricks, contracts::Contract, players::PlayerId};
+use crate::{CollectedTricks, TOTAL_PLAYERS, Tricks, contracts::Contract, players::PlayerId};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -29,7 +29,7 @@ impl Hand {
     /// and subtract the bid delta from the default minimum tricks.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn get_adjusted_tricks(&self) -> Tricks {
+    pub fn get_effective_tricks(&self) -> Tricks {
         let tricks = self.contract.max_bid.map_or(self.tricks, |max| {
             let inner = self.tricks.get().clamp(0, max.get());
             Tricks::new(inner).expect("inner has been clamp between Tricks range")
@@ -45,10 +45,11 @@ impl Hand {
 
     #[must_use]
     pub fn get_score(&self) -> i16 {
-        let adjusted_tricks = self.get_adjusted_tricks();
+        let adjusted_tricks = self.get_effective_tricks();
+        let tricks = CollectedTricks::new(self.tricks, adjusted_tricks);
         self.contract
             .gamemode
-            .get_single_player_score(adjusted_tricks)
+            .calculate_score(tricks)
     }
 
     #[must_use]
@@ -326,7 +327,7 @@ mod tests {
 
         let hand = hb.build().unwrap();
 
-        assert_eq!(hand.get_adjusted_tricks(), tricks);
+        assert_eq!(hand.get_effective_tricks(), tricks);
     }
 
     #[test]
@@ -344,7 +345,7 @@ mod tests {
 
         let hand = hb.build().unwrap();
 
-        assert_eq!(hand.get_adjusted_tricks(), t!(8));
+        assert_eq!(hand.get_effective_tricks(), t!(8));
     }
 
     #[test]
@@ -362,7 +363,7 @@ mod tests {
 
         let hand = hb.build().unwrap();
 
-        assert_eq!(hand.get_adjusted_tricks(), t!(0));
+        assert_eq!(hand.get_effective_tricks(), t!(0));
     }
 
     #[test]
@@ -385,6 +386,6 @@ mod tests {
         let diff = bid.checked_sub(min).unwrap();
         let expected = t!(8).saturating_sub(diff);
 
-        assert_eq!(hand.get_adjusted_tricks(), expected);
+        assert_eq!(hand.get_effective_tricks(), expected);
     }
 }

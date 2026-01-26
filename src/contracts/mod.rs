@@ -82,6 +82,7 @@ pub fn default_contracts() -> Vec<Contract> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::t;
 
     #[test]
     fn dutch() {
@@ -89,7 +90,7 @@ mod tests {
         let emballage = &scorables[0];
         let emballage_score = emballage
             .gamemode
-            .get_single_player_score(Tricks::new(8).expect("Within range"));
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(8)));
 
         let expected_score = 2;
 

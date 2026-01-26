@@ -1,4 +1,7 @@
-use crate::scoring::{PointsCoefficient, Score, Tricks};
+use crate::{
+    CollectedTricks,
+    scoring::{Score, Tricks},
+};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -28,16 +31,17 @@ impl Seul {
 
 #[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for Seul {
-    fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient) {
-        let suppl_tricks = tricks.as_i16().clamp(0, self.max_tricks_allowed.as_i16())
+    fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
+        let suppl_tricks = tricks
+            .effective
+            .as_i16()
+            .clamp(0, self.max_tricks_allowed.as_i16())
             - self.tricks_to_win.as_i16();
 
         if let 0.. = suppl_tricks {
-            let points = self.min_points + suppl_tricks * self.points_per_suppl_trick;
-            (points, PointsCoefficient::One)
+            self.min_points + suppl_tricks * self.points_per_suppl_trick
         } else {
-            let points = self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick;
-            (points, PointsCoefficient::DoubleNeg)
+            -2* (self.min_points + suppl_tricks.abs() * self.points_per_suppl_trick)
         }
     }
 
@@ -59,25 +63,25 @@ mod tests {
 
     #[test]
     fn test_seul_win() {
-        let tricks = Tricks(8);
+        let tricks = CollectedTricks::from_tricks(Tricks(8));
         let expected_score = 12;
 
-        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
+        assert_eq!(expected_score, SEUL.calculate_score(tricks));
     }
 
     #[test]
     fn test_seul_lose() {
-        let tricks = Tricks(3);
+        let tricks = CollectedTricks::from_tricks(Tricks(3));
         let expected_score = -30;
 
-        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
+        assert_eq!(expected_score, SEUL.calculate_score(tricks));
     }
 
     #[test]
     fn test_seul_win_too_much() {
-        let tricks = Tricks(9);
+        let tricks = CollectedTricks::from_tricks(Tricks(9));
         let expected_score = 12;
 
-        assert_eq!(expected_score, SEUL.get_single_player_score(tricks));
+        assert_eq!(expected_score, SEUL.calculate_score(tricks));
     }
 }

@@ -1,6 +1,5 @@
 use std::{convert::Infallible, fmt::Display};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TricksOutOfRange(pub u8);
 
@@ -140,5 +139,37 @@ impl From<Tricks> for i16 {
 impl Display for Tricks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+/// `Tricks` type derivation for score calculation taking the potential bid into account.
+///
+/// If a player make a bid of `Tricks(9)` in game with `Tricks(8)` required and achieve to collect
+/// `Tricks(9)`, it is equivalent in scoring terms of collecting `Tricks(8)` in a game of `Tricks(8)`.
+/// In both cases, the effective `Tricks` is 8.
+///
+/// The absolute field is the actual `Tricks` number collected. In the previous example, it would respectively
+/// be `Tricks(9)` and `Tricks(8)`. This information is useful for calculating double points scenarios.
+#[derive(Debug, Clone, Copy)]
+pub struct CollectedTricks {
+    /// Actual `Tricks` number collected by a player (or a Team) during a game.
+    pub absolute: Tricks,
+    /// Effective `Tricks` number regarding the potential bid and the minimum `Tricks` to win.
+    pub effective: Tricks,
+}
+
+impl CollectedTricks {
+    #[must_use]
+    pub const fn new(absolute: Tricks, effective: Tricks) -> Self {
+        Self {
+            absolute,
+            effective,
+        }
+    }
+
+    /// Set both fields to the same value. Happens when no bid is made.
+    #[must_use]
+    pub const fn from_tricks(tricks: Tricks) -> Self {
+        Self::new(tricks, tricks)
     }
 }

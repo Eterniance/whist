@@ -1,7 +1,7 @@
 use crate::{
     TOTAL_PLAYERS,
     players::PlayerId,
-    scoring::{PointsCoefficient, Tricks},
+    scoring::{Tricks, tricks::CollectedTricks},
 };
 use dyn_clone::DynClone;
 use std::{
@@ -14,12 +14,7 @@ pub trait Score: Debug + DynClone {
     /// The minimum tricks to win.
     fn min_tricks(&self) -> Tricks;
     /// Gives the score based on tricks number.
-    fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient);
-
-    fn get_single_player_score(&self, tricks: Tricks) -> i16 {
-        let (points, coef) = self.calculate_score(tricks);
-        points * i16::from(coef)
-    }
+    fn calculate_score(&self, tricks: CollectedTricks) -> i16;
 
     /// Computes the score for each of the four players, ensuring the total sum of scores is zero.
     ///
@@ -40,21 +35,22 @@ pub trait Score: Debug + DynClone {
     /// # Panics
     /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
     /// - Panics if internal invariants are violated (final score sum is not zero).
-    #[allow(clippy::cast_possible_truncation,clippy::cast_possible_wrap)]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     fn get_each_player_score(
         &self,
-        players_and_tricks: &[(PlayerId, Tricks)],
+        players_and_tricks: &[(PlayerId, CollectedTricks)],
     ) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
         let mut scores = [0; TOTAL_PLAYERS];
         let mut already_set_mask = 0;
         for (id, tricks) in players_and_tricks {
-            let score = self.get_single_player_score(*tricks);
+            let score = self.calculate_score(*tricks);
             let idx = id.idx();
             scores[idx] = score;
             already_set_mask |= 1 << idx;
         }
         let others_score = scores.iter().sum::<i16>().neg();
-        let div = TOTAL_PLAYERS as i16 - i16::try_from(players_and_tricks.len()).expect("Length should be less than i16::MAX");
+        let div = TOTAL_PLAYERS as i16
+            - i16::try_from(players_and_tricks.len()).expect("Length should be less than i16::MAX");
 
         if others_score % div != 0 {
             return Err("Score sum is non zero".into());
@@ -86,14 +82,14 @@ mod tests {
             Tricks(0)
         }
 
-        fn calculate_score(&self, tricks: Tricks) -> (i16, PointsCoefficient) {
-            let coef = match tricks.get() {
-                7..13 => PointsCoefficient::One,
-                13 => PointsCoefficient::Double,
-                0..=6 => PointsCoefficient::DoubleNeg,
+        fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
+            let tricks = tricks.absolute;
+            match tricks.get() {
+                7..13 => tricks.as_i16(),
+                13 => 2 * tricks.as_i16(),
+                0..=6 => -2 * tricks.as_i16(),
                 _ => unreachable!(),
-            };
-            (tricks.into(), coef)
+            }
         }
     }
 
@@ -148,7 +144,8 @@ mod tests {
 
     #[test]
     fn disorder() {
-        let t = [(PlayerId(2), Tricks::try_from(9).unwrap())];
+        let collected = CollectedTricks::from_tricks(Tricks::try_from(9).unwrap());
+        let t = [(PlayerId(2), collected)];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [-3, -3, 9, -3]);
     }
@@ -156,8 +153,14 @@ mod tests {
     #[test]
     fn disorder_2() {
         let t = [
-            (PlayerId(2), Tricks::try_from(6).unwrap()),
-            (PlayerId(1), Tricks::try_from(8).unwrap()),
+            (
+                PlayerId(2),
+                CollectedTricks::from_tricks(Tricks::try_from(6).unwrap()),
+            ),
+            (
+                PlayerId(1),
+                CollectedTricks::from_tricks(Tricks::try_from(8).unwrap()),
+            ),
         ];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [2, 8, -12, 2]);
