@@ -34,7 +34,6 @@ pub trait Score: Debug + DynClone {
     ///
     /// # Panics
     /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
-    /// - Panics if internal invariants are violated (final score sum is not zero).
     #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     fn get_each_player_score(
         &self,
@@ -95,49 +94,49 @@ mod tests {
 
     #[test]
     fn null_sum() {
-        let t = p_and_t![8, 8];
+        let t = p_and_t![collected 8, 8];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [8, 8, -8, -8]);
     }
 
     #[test]
     fn capot() {
-        let t = p_and_t![13, 13];
+        let t = p_and_t![collected 13, 13];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [26, 26, -26, -26]);
     }
 
     #[test]
     fn fail_to_compute() {
-        let t = p_and_t![8, 9];
+        let t = p_and_t![collected 8, 9];
         let scores = Scorable.get_each_player_score(&t);
         assert!(scores.is_err());
     }
 
     #[test]
     fn asymmetric_scores_1() {
-        let t = p_and_t![9];
+        let t = p_and_t![collected 9];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [9, -3, -3, -3]);
     }
 
     #[test]
     fn asymmetric_scores_2() {
-        let t = p_and_t![6, 10];
+        let t = p_and_t![collected 6, 10];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [-12, 10, 1, 1]);
     }
 
     #[test]
     fn asymmetric_scores_3() {
-        let t = p_and_t![8, 10, 12];
+        let t = p_and_t![collected 8, 10, 12];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [8, 10, 12, -30]);
     }
 
     #[test]
     fn neg_to_pos() {
-        let t = p_and_t![2, 4];
+        let t = p_and_t![collected 2, 4];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [-4, -8, 6, 6]);
     }

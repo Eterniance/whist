@@ -58,8 +58,8 @@ pub enum InputRequest {
 pub struct HandBuilder {
     contract: Contract,
     contractors: Option<Vec<PlayerId>>,
-    bid: Option<Tricks>,
     tricks: Option<Vec<Tricks>>,
+    bid: Option<Tricks>,
 }
 
 impl HandBuilder {
@@ -122,8 +122,10 @@ impl HandBuilder {
     /// configuration.
     #[allow(clippy::missing_panics_doc)]
     pub fn set_contractors(&mut self, c: &[PlayerId]) -> Result<(), HandBuildError> {
-        if &u8::try_from(c.len()).expect("Only 4 players max")
-            > self.contract.contractors_kind.end()
+        if !self
+            .contract
+            .contractors_kind
+            .contains(&u8::try_from(c.len()).expect("Only 4 players max"))
         {
             return Err(HandBuildError("Contractors type does not match"));
         }
@@ -150,9 +152,38 @@ impl HandBuilder {
         }
         Ok(())
     }
+    /// Sets the number of tricks taken by the contractors.
+    ///
+    /// The number of provided trick values must match the number of contractors
+    /// defined for the hand.
+    ///
+    /// The `Tricks` position in the slice must correspond to the `PlayerId`
+    /// position in `self.contractors`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the number of trick entries does not match the
+    /// number of contractors.
+    #[allow(clippy::missing_panics_doc)]
+    pub fn set_tricks(&mut self, tricks: &[Tricks]) -> Result<(), HandBuildError> {
+        if self.contractors.is_none() {
+            return Err(HandBuildError("Contractors must be set before Tricks"));
+        }
 
-    pub fn set_tricks(&mut self, tricks: &[Tricks]) {
+        if self.contract.contractors_kind.len() != tricks.len()
+            && self
+                .contractors
+                .as_ref()
+                .expect("Checked that is not None")
+                .len()
+                != tricks.len()
+        {
+            return Err(HandBuildError(
+                "tricks length should be 1 or the same as contractors length",
+            ));
+        }
         self.tricks = Some(tricks.into());
+        Ok(())
     }
 
     /// Builds the hand from the collected contract parameters.
@@ -205,7 +236,7 @@ pub struct HandRecap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{gamemodes::TricksChase, p, scoring::ExactTricks, t};
+    use crate::{gamemodes::TricksChase, p, p_and_t, scoring::ExactTricks, t};
 
     fn emballage() -> Contract {
         let rules = TricksChase::new(t!(8), 2, 1);
@@ -239,7 +270,7 @@ mod tests {
 
         hb.set_contractors(&contractors).unwrap();
         hb.set_bid(bid).unwrap();
-        hb.set_tricks(tricks);
+        hb.set_tricks(tricks).unwrap();
 
         let hand = hb.build().unwrap();
 
@@ -263,7 +294,7 @@ mod tests {
         hb.set_contractors(&contractors).unwrap_err();
 
         hb.set_bid(bid).unwrap_err();
-        hb.set_tricks(tricks);
+        hb.set_tricks(tricks).unwrap_err();
 
         hb.build().unwrap_err();
     }
@@ -286,9 +317,36 @@ mod tests {
         hb.set_bid(t!(1)).unwrap();
 
         hb.set_contractors(&c).unwrap();
-        hb.set_tricks(&[t!(0)]);
+        hb.set_tricks(&[t!(0)]).unwrap();
         let hand = hb.build().unwrap();
 
         assert!(hand.bid.is_none());
+    }
+
+    #[test]
+    fn builder_contractors_mismatch() {
+        let contract = emballage();
+
+        let mut hb = HandBuilder::new(contract);
+
+        let c = p!(1);
+
+        hb.set_contractors(&c).unwrap_err();
+    }
+
+    #[test]
+    fn builder_contractors_mismatch_2() {
+        let contract = misere();
+
+        let mut hb = HandBuilder::new(contract);
+
+        hb.set_tricks(&[t!(0)]).unwrap_err();
+
+        let c = p!(0);
+        hb.set_contractors(&c).unwrap();
+        hb.set_tricks(&[t!(0)]).unwrap();
+
+        let hand = hb.build().unwrap();
+        assert_eq!(hand.contractors_tricks, p_and_t!(0).to_vec());
     }
 }

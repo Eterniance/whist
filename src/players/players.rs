@@ -135,8 +135,8 @@ impl Players {
 
 #[cfg(test)]
 mod tests {
-    use super::{PlayerId, PlayersBuilder};
-    use crate::{GameError, contracts::default_contracts, p_and_t, scoring::Tricks};
+    use super::PlayersBuilder;
+    use crate::{GameError, contracts::default_contracts, p_and_t};
 
     #[test]
     fn players_builder() -> Result<(), GameError> {
@@ -148,7 +148,7 @@ mod tests {
         }
         let mut players = players_builder.build()?;
 
-        let p_and_t = p_and_t!(8, 8);
+        let p_and_t = p_and_t!(collected 8, 8);
         let scores = contracts[0]
             .gamemode
             .get_each_player_score(&p_and_t)

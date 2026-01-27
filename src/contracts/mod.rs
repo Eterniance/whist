@@ -21,7 +21,7 @@ pub struct Contract {
 
 impl Contract {
     #[must_use]
-    pub fn min_tricks(&self) -> Tricks {
+    fn min_tricks(&self) -> Tricks {
         self.gamemode.min_tricks()
     }
 
@@ -34,7 +34,7 @@ impl Contract {
     /// # Panics
     /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
     /// - Panics if internal invariants are violated (final score sum is not zero).
-    pub fn get_scores(
+    fn get_scores(
         &self,
         contractors_tricks: &[(PlayerId, Tricks)],
         bid: Option<Tricks>,
@@ -44,7 +44,7 @@ impl Contract {
         }
         let players_and_tricks: Vec<_> = contractors_tricks
             .iter()
-            .map(|&(id, tricks)| (id, self.compute_tricks(tricks, bid)))
+            .map(|&(id, tricks)| (id, self.get_collected_tricks(tricks, bid)))
             .collect();
         self.gamemode.get_each_player_score(&players_and_tricks)
     }
@@ -55,7 +55,7 @@ impl Contract {
     /// and subtract the bid delta from the default minimum tricks.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    fn compute_tricks(&self, tricks: Tricks, bid: Option<Tricks>) -> CollectedTricks {
+    fn get_collected_tricks(&self, tricks: Tricks, bid: Option<Tricks>) -> CollectedTricks {
         let clamped = match self.max_bid {
             None => return CollectedTricks::from_tricks(tricks),
             Some(max) => {
@@ -135,7 +135,14 @@ pub fn default_contracts() -> Vec<Contract> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::t;
+    use crate::{p_and_t, t};
+
+    fn get_contract(name: &str) -> Contract {
+        default_contracts()
+            .into_iter()
+            .find(|c| c.name == name)
+            .unwrap()
+    }
 
     #[test]
     fn dutch() {
@@ -152,42 +159,33 @@ mod tests {
 
     #[test]
     fn adjusted_tricks_without_bid() {
-        let contract = default_contracts()
-            .into_iter()
-            .find(|c| c.name == "Petite Misere")
-            .unwrap();
+        let contract = get_contract("Petite Misere");
 
         let tricks = t!(5);
-        let computed_tricks = contract.compute_tricks(tricks, Some(t!(6)));
+        let computed_tricks = contract.get_collected_tricks(tricks, Some(t!(6)));
         assert_eq!(computed_tricks.absolute, computed_tricks.effective);
         assert_eq!(computed_tricks.absolute, tricks);
     }
 
     #[test]
     fn adjusted_tricks_with_bid() {
-        let contract = default_contracts()
-            .into_iter()
-            .find(|c| c.name == "Emballage")
-            .unwrap();
+        let contract = get_contract("Emballage");
 
         let tricks = t!(10);
         let bid = t!(9);
-        let computed_tricks = contract.compute_tricks(tricks, Some(bid));
+        let computed_tricks = contract.get_collected_tricks(tricks, Some(bid));
         assert_eq!(computed_tricks.absolute, tricks);
         assert_eq!(computed_tricks.effective, bid);
     }
 
     #[test]
     fn adjusted_tricks_with_bid_saturating() {
-        let contract = default_contracts()
-            .into_iter()
-            .find(|c| c.name == "Emballage")
-            .unwrap();
+        let contract = get_contract("Emballage");
 
         let tricks = t!(3);
         let bid = Some(Tricks::MAX_TRICKS);
 
-        let computed_tricks = contract.compute_tricks(tricks, bid);
+        let computed_tricks = contract.get_collected_tricks(tricks, bid);
 
         assert_eq!(computed_tricks.absolute, tricks);
         assert_eq!(computed_tricks.effective, t!(0));
@@ -195,15 +193,12 @@ mod tests {
 
     #[test]
     fn adjusted_tricks_clamp() {
-        let contract = default_contracts()
-            .into_iter()
-            .find(|c| c.name == "Seul")
-            .unwrap();
+        let contract = get_contract("Seul");
 
         let tricks = t!(12);
         let bid = t!(7);
 
-        let computed_tricks = contract.compute_tricks(tricks, Some(bid));
+        let computed_tricks = contract.get_collected_tricks(tricks, Some(bid));
 
         let min = contract.min_tricks();
         let diff = bid.checked_sub(min).unwrap();
@@ -211,5 +206,75 @@ mod tests {
 
         assert_eq!(computed_tricks.absolute, tricks);
         assert_eq!(computed_tricks.effective, expected);
+    }
+
+    #[test]
+    fn get_score_basic() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(8, 8);
+        let bid = None;
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [2, 2, -2, -2]);
+    }
+
+    #[test]
+    fn get_score_bid() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(9, 9);
+        let bid = Some(t!(9));
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [2, 2, -2, -2]);
+    }
+
+    #[test]
+    fn get_score_bid_lost() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(8, 8);
+        let bid = Some(t!(9));
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [-6, -6, 6, 6]);
+    }
+
+    #[test]
+    fn get_score_empty_contractors() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &[];
+        let bid = None;
+        let scores = contract.get_scores(contractors_tricks, bid);
+
+        assert!(scores.is_err());
+    }
+
+    #[test]
+    fn get_score_capot() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(13, 13);
+        let bid = Some(t!(8));
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [12, 12, -12, -12]);
+    }
+
+    #[test]
+    fn get_score_capot_with_bid() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(13, 13);
+        let bid = Some(t!(9));
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [10, 10, -10, -10]);
+    }
+
+    #[test]
+    fn get_score_capot_with_bid_capped() {
+        let contract = get_contract("Seul");
+        let contractors_tricks = &p_and_t!(13);
+        let bid = Some(t!(8));
+        let scores = contract.get_scores(contractors_tricks, bid).unwrap();
+
+        assert_eq!(scores, [6, -2, -2, -2]);
     }
 }

@@ -174,3 +174,99 @@ impl CollectedTricks {
         Self::new(tricks, tricks)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::t;
+
+    #[test]
+    fn init_tricks() {
+        let tricks = Tricks::new(Tricks::MIN).unwrap();
+        assert_eq!(tricks, Tricks(Tricks::MIN));
+
+        let tricks = Tricks::new(Tricks::MAX).unwrap();
+        assert_eq!(tricks, Tricks(Tricks::MAX));
+
+        let _ = Tricks::new(Tricks::MAX + 1).unwrap_err();
+    }
+
+    #[test]
+    fn trivial_cases() {
+        let a = t!(3);
+        let b = t!(4);
+
+        let sum = a.checked_add(b).unwrap();
+        assert_eq!(sum, t!(7));
+        assert_eq!(sum.get(), 7);
+
+        let sat_sum = a.saturating_add(b);
+        assert_eq!(sum, sat_sum);
+
+        let diff = b.checked_sub(a).unwrap();
+        assert_eq!(diff, t!(1));
+
+        let sat_diff = b.saturating_sub(a);
+        assert_eq!(diff, sat_diff);
+    }
+
+    #[test]
+    fn checked_add_with_u8_rhs_out_of_range_err() {
+        let a = t!(5);
+
+        let err = a.checked_add(14u8).unwrap_err();
+        assert_eq!(err.0, 14);
+    }
+
+    #[test]
+    fn checked_add_sum_out_of_range_err() {
+        let a = t!(13);
+
+        let err = a.checked_add(t!(13)).unwrap_err();
+        assert_eq!(err.0, 26);
+    }
+
+    #[test]
+    fn saturating_add_saturates() {
+        let a = t!(13);
+        let b = t!(11);
+
+        let sum = a.saturating_add(b);
+        assert_eq!(sum.get(), 13);
+    }
+
+    #[test]
+    fn checked_sub_with_u8_rhs_out_of_range_err() {
+        let a = t!(10);
+
+        let err = a.checked_sub(14u8).unwrap_err();
+        assert_eq!(err.0, 14);
+    }
+
+    #[test]
+    fn checked_sub_underflow() {
+        let a = t!(0);
+
+        let err = a.checked_sub(t!(1)).unwrap_err();
+        assert_eq!(err.0, 255);
+    }
+
+    #[test]
+    fn saturating_sub_ok() {
+        let a = t!(10);
+        let b = t!(3);
+
+        let diff = a.saturating_sub(b);
+        assert_eq!(diff.get(), 7);
+    }
+
+    #[test]
+    fn saturating_sub_saturates_at_zero() {
+        let a = t!(2);
+        let b = t!(13);
+
+        let diff = a.saturating_sub(b);
+        assert_eq!(diff.get(), 0);
+        assert_eq!(diff, Tricks::MIN_TRICKS);
+    }
+}

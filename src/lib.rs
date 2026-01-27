@@ -27,26 +27,38 @@ pub(crate) mod test_utils {
     #[macro_export]
     macro_rules! p {
     ( $($idx:literal),+ $(,)? ) => {
-        [$(PlayerId($idx)),+]
+        [$($crate::players::PlayerId($idx)),+]
     };
 }
 
     #[macro_export]
     macro_rules! t {
         ($v:literal) => {
-            Tricks::new($v).unwrap()
+            $crate::Tricks::new($v).unwrap()
         };
     }
 
     #[macro_export]
     macro_rules! p_and_t {
-        ( $($trick:literal),+ $(,)? ) => {
+        (collected $($trick:literal),+ $(,)? ) => {
             {let mut idx = 0;
                 #[allow(unused)]
                 [ $(
                     {
                         let collected = $crate::scoring::CollectedTricks::from_tricks($crate::t!($trick));
-                        let pair = (PlayerId(idx), collected);
+                        let pair = ($crate::players::PlayerId(idx), collected);
+                        idx += 1;
+                        pair
+                    },
+                )+]
+            }
+        };
+        ( $($trick:literal),+ $(,)? ) => {
+            {let mut idx = 0;
+                #[allow(unused)]
+                [ $(
+                    {
+                        let pair = ($crate::players::PlayerId(idx), $crate::t!($trick));
                         idx += 1;
                         pair
                     },
