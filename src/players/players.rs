@@ -8,7 +8,7 @@ use std::collections::HashMap;
 ///
 /// # Example
 /// ```
-/// use whist::players::PlayersBuilder;
+/// use whist_game::players::PlayersBuilder;
 ///
 /// let mut players_builder = PlayersBuilder::default();
 /// for p in ["A", "B", "C", "D"].into_iter() {
@@ -58,6 +58,12 @@ pub struct PlayersBuilder {
 }
 
 impl PlayersBuilder {
+    /// Create a new instance of `PlayersBuilder`.
+    /// This is equivalent to `PlayersBuilder::default()`.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
     /// Adds a new player to the game.
     ///
     /// A player is created with the given name and assigned a unique internal
@@ -114,6 +120,13 @@ impl Players {
     #[must_use]
     pub fn names(&self) -> Vec<String> {
         self.list.iter().map(|p| p.name.clone()).collect()
+    }
+
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn current_scores(&self) -> [i16; TOTAL_PLAYERS] {
+        let scores: Vec<_> = self.list.iter().map(|p| p.score).collect();
+        scores.try_into().expect("Each player has a score")
     }
 
     /// Update each player score.
