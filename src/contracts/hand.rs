@@ -169,7 +169,6 @@ impl HandBuilder {
         if self.contractors.is_none() {
             return Err(HandBuildError("Contractors must be set before Tricks"));
         }
-
         if self.contract.contractors_kind.len() != tricks.len()
             && self
                 .contractors
@@ -279,6 +278,9 @@ mod tests {
             [(PlayerId(1), t!(10)), (PlayerId(2), t!(10))]
         );
         assert_eq!(hand.bid, Some(bid));
+
+        let scores = hand.get_score().unwrap();
+        assert_eq!(scores, [-3, 3, 3, -3]);
     }
 
     #[test]
@@ -321,6 +323,9 @@ mod tests {
         let hand = hb.build().unwrap();
 
         assert!(hand.bid.is_none());
+
+        let scores = hand.get_score().unwrap();
+        assert_eq!(scores, [-4, 12, -4, -4]);
     }
 
     #[test]
@@ -348,5 +353,36 @@ mod tests {
 
         let hand = hb.build().unwrap();
         assert_eq!(hand.contractors_tricks, p_and_t!(0).to_vec());
+
+        let scores = hand.get_score().unwrap();
+        assert_eq!(scores, [12, -4, -4, -4]);
+    }
+
+    #[test]
+    fn scores_unordered_with_bid() {
+        let hand = Hand {
+            contract: emballage(),
+            contractors_tricks: vec![(PlayerId(3), t!(8)), (PlayerId(2), t!(8))],
+            bid: Some(t!(9)),
+        };
+
+        let scores = hand.get_score().unwrap();
+        assert_eq!(scores, [6, 6, -6, -6]);
+    }
+
+    #[test]
+    fn infer_last_score() {
+        let hand = Hand {
+            contract: misere(),
+            contractors_tricks: vec![
+                (PlayerId(3), t!(0)),
+                (PlayerId(2), t!(0)),
+                (PlayerId(1), t!(2)),
+            ],
+            bid: Some(t!(9)),
+        };
+
+        let scores = hand.get_score().unwrap();
+        assert_eq!(scores, [0, -24, 12, 12]);
     }
 }

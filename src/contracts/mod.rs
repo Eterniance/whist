@@ -53,8 +53,11 @@ impl Contract {
     ///
     /// Clamp the tricks number to the maximum allowed tricks if any
     /// and subtract the bid delta from the default minimum tricks.
+    ///
+    /// # Panic
+    /// This function will panic if the inner value of `bid` is stricly smaller than
+    /// `tricks`.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     fn get_collected_tricks(&self, tricks: Tricks, bid: Option<Tricks>) -> CollectedTricks {
         let clamped = match self.max_bid {
             None => return CollectedTricks::from_tricks(tricks),
@@ -206,6 +209,15 @@ mod tests {
 
         assert_eq!(computed_tricks.absolute, tricks);
         assert_eq!(computed_tricks.effective, expected);
+    }
+
+    #[test]
+    #[should_panic = "Bid should be greater than min_tricks"]
+    fn bid_less_than_min_tricks() {
+        let contract = get_contract("Emballage");
+        let contractors_tricks = &p_and_t!(8, 8);
+        let bid = Some(t!(7)); // Min tricks = 8
+        let _ = contract.get_scores(contractors_tricks, bid).unwrap();
     }
 
     #[test]

@@ -136,7 +136,7 @@ impl Players {
 #[cfg(test)]
 mod tests {
     use super::PlayersBuilder;
-    use crate::{GameError, contracts::default_contracts, p_and_t};
+    use crate::{GameError, contracts::default_contracts, p_and_t, players::PlayerId};
 
     #[test]
     fn players_builder() -> Result<(), GameError> {
@@ -159,6 +159,30 @@ mod tests {
         assert_eq!(players.list[1].score, 2);
         assert_eq!(players.list[2].score, -2);
         assert_eq!(players.list[3].score, -2);
+        Ok(())
+    }
+
+    #[test]
+    fn players_builder_duplicate() -> Result<(), GameError> {
+        let input_names = ["A", "B", "C", "D"];
+        let mut players_builder = PlayersBuilder::default();
+        players_builder.add_player(&input_names[0])?;
+        players_builder.add_player(&input_names[0]).unwrap_err();
+        players_builder.add_player(&input_names[1])?;
+        players_builder.add_player(&input_names[2])?;
+        let u = players_builder.add_player(&input_names[3])?;
+        players_builder.add_player(&"E").unwrap_err();
+        assert_eq!(u, 4);
+
+        let players = players_builder.build()?;
+        assert_eq!(players.names(), input_names.to_vec());
+
+        assert_eq!(players.name_to_id.len(), input_names.len());
+
+        for (i, name) in input_names.iter().enumerate() {
+            let id = players.get_id(name).unwrap();
+            assert_eq!(id, PlayerId(i));
+        }
         Ok(())
     }
 }

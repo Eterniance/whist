@@ -16,6 +16,7 @@ pub trait Score: Debug + DynClone {
     /// Gives the score based on tricks number.
     fn calculate_score(&self, tricks: CollectedTricks) -> i16;
 
+    #[allow(clippy::doc_lazy_continuation)]
     /// Computes the score for each of the four players, ensuring the total sum of scores is zero.
     ///
     /// This function takes a partial list of `(PlayerId, Tricks)` pairs, computes the score for
@@ -29,7 +30,8 @@ pub trait Score: Debug + DynClone {
     /// - The final score array always has length 4 and sums to zero.
     ///
     /// # Errors
-    /// Returns an error if the remaining score cannot be evenly distributed among the unspecified
+    /// - Returns an error if a `PlayerId` is duplicated.
+    /// - Returns an error if the remaining score cannot be evenly distributed among the unspecified
     /// players (i.e., the total score is not divisible by the number of missing players).
     ///
     /// # Panics
@@ -45,7 +47,14 @@ pub trait Score: Debug + DynClone {
             let score = self.calculate_score(*tricks);
             let idx = id.idx();
             scores[idx] = score;
-            already_set_mask |= 1 << idx;
+
+            let already_set_bit = 1 << idx;
+            if (already_set_mask & already_set_bit) != 0 {
+                return Err("Duplicate PlayerId".into());
+            }
+            already_set_mask |= already_set_bit;
+
+            scores[idx] = self.calculate_score(*tricks);
         }
         let others_score = scores.iter().sum::<i16>().neg();
         let div = TOTAL_PLAYERS as i16
@@ -67,7 +76,7 @@ pub trait Score: Debug + DynClone {
 #[cfg(test)]
 #[allow(unused)]
 mod tests {
-    use crate::{Tricks, p_and_t};
+    use crate::{Tricks, p_and_t, t};
 
     use super::*;
 
@@ -163,5 +172,12 @@ mod tests {
         ];
         let scores = Scorable.get_each_player_score(&t).unwrap();
         assert_eq!(scores, [2, 8, -12, 2]);
+    }
+
+    #[test]
+    fn duplicate() {
+        let tricks = CollectedTricks::from_tricks(t!(5));
+        let t = [(PlayerId(1), tricks), (PlayerId(1), tricks)];
+        Scorable.get_each_player_score(&t).unwrap_err();
     }
 }
