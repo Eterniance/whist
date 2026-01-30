@@ -22,14 +22,14 @@ pub enum GameError {
 }
 
 #[cfg(test)]
-pub(crate) mod test_utils {
+pub mod test_utils {
 
     #[macro_export]
     macro_rules! p {
-    ( $($idx:literal),+ $(,)? ) => {
-        [$($crate::players::PlayerId($idx)),+]
-    };
-}
+        ( $($idx:literal),+ $(,)? ) => {
+            [$($crate::players::PlayerId($idx)),+]
+        };
+    }
 
     #[macro_export]
     macro_rules! t {

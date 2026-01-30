@@ -1,19 +1,8 @@
 use std::error::Error;
 
-use whist_game::{
-    Tricks, default_contracts,
-    hand::HandBuilder,
-    players::{Players, PlayersBuilder},
-};
-
-fn build_players() -> Result<Players, Box<dyn Error>> {
-    let mut players_builder = PlayersBuilder::new();
-    players_builder.add_player(&"Player 1")?;
-    players_builder.add_player(&"Player 2")?;
-    players_builder.add_player(&"Player 3")?;
-    players_builder.add_player(&"Player 4")?;
-    Ok(players_builder.build()?)
-}
+use whist_game::{Tricks, default_contracts, hand::HandBuilder};
+mod utils;
+use crate::utils::build_players;
 
 #[test]
 fn main() -> Result<(), Box<dyn Error>> {
