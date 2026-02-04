@@ -7,19 +7,20 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ExactTricks {
     min_points: i16,
+    target: Tricks,
 }
 
 impl ExactTricks {
     #[must_use]
-    pub const fn new(min_points: i16) -> Self {
-        Self { min_points }
+    pub const fn new(min_points: i16, target: Tricks) -> Self {
+        Self { min_points , target}
     }
 }
 
 #[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for ExactTricks {
     fn calculate_score(&self, tricks: CollectedTricks) -> i16 {
-        if tricks.absolute.get() == 0 {
+        if tricks.absolute == self.target {
             return self.min_points;
         }
         -2 * self.min_points
@@ -34,7 +35,7 @@ impl Score for ExactTricks {
 mod tests {
     use super::*;
 
-    const MISERE: ExactTricks = ExactTricks { min_points: 12 };
+    const MISERE: ExactTricks = ExactTricks { min_points: 12, target: Tricks(0) };
 
     #[test]
     fn win() {

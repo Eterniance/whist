@@ -3,7 +3,7 @@ use crate::{
     players::PlayerId,
     scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase},
 };
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive};
 
 pub mod hand;
 pub use hand::{Hand, HandBuildError, HandRecap};
@@ -13,7 +13,7 @@ dyn_clone::clone_trait_object!(Score);
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Contract {
-    pub name: &'static str,
+    pub name: String,
     pub max_bid: Option<Tricks>,
     pub contractors_kind: RangeInclusive<u8>,
     pub gamemode: Box<dyn Score>,
@@ -83,7 +83,7 @@ pub fn default_contracts() -> Vec<Contract> {
     let tricks_to_win = Tricks::new(8).expect("Withing range");
     let rules = TricksChase::new(tricks_to_win, 2, 1);
     let emballage = Contract {
-        name: "Emballage",
+        name: "Emballage".to_string(),
         max_bid: Some(Tricks::MAX_TRICKS),
         gamemode: Box::new(rules),
         contractors_kind: 2..=2,
@@ -93,34 +93,34 @@ pub fn default_contracts() -> Vec<Contract> {
     let rules = CappedChase::new(tricks_to_win, 6, 3, max_tricks_allowed);
 
     let seul = Contract {
-        name: "Seul",
+        name: "Seul".to_string(),
         max_bid: Some(max_tricks_allowed),
         gamemode: Box::new(rules),
         contractors_kind: 1..=1,
     };
 
-    let rules = ExactTricks::new(12);
+    let rules = ExactTricks::new(12, Tricks(0));
 
     let petite_misere = Contract {
-        name: "Petite Misere",
+        name: "Petite Misere".to_string(),
         max_bid: None,
         contractors_kind: 1..=3,
         gamemode: Box::new(rules),
     };
 
-    let rules = ExactTricks::new(24);
+    let rules = ExactTricks::new(24, Tricks(0));
 
     let grande_misere = Contract {
-        name: "Grande Misere",
+        name: "Grande Misere".to_string(),
         max_bid: None,
         contractors_kind: 1..=3,
         gamemode: Box::new(rules),
     };
 
-    let rules = ExactTricks::new(36);
+    let rules = ExactTricks::new(36, Tricks(0));
 
     let grande_misere_sur_trou = Contract {
-        name: "Grande Misere sur trou",
+        name: "Grande Misere sur trou".to_string(),
         max_bid: None,
         contractors_kind: 1..=3,
         gamemode: Box::new(rules),

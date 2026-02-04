@@ -18,8 +18,8 @@ pub struct Hand {
 
 impl Hand {
     #[must_use]
-    pub const fn gamemode_name(&self) -> &'static str {
-        self.contract.name
+    pub fn gamemode_name(&self) -> String {
+        self.contract.name.clone()
     }
 
     /// Compute the score for each player. The array position corresponds to the player ID.
@@ -39,7 +39,7 @@ impl Hand {
     pub fn as_recap(self, scores: [i16; TOTAL_PLAYERS]) -> HandRecap {
         HandRecap {
             scores,
-            gamemode_name: self.gamemode_name().to_string(),
+            gamemode_name: self.gamemode_name(),
             contractors_tricks: self.contractors_tricks,
             bid: self.bid,
         }
@@ -240,7 +240,7 @@ mod tests {
     fn emballage() -> Contract {
         let rules = TricksChase::new(t!(8), 2, 1);
         Contract {
-            name: "Emballage",
+            name: "Emballage".to_string(),
             max_bid: Some(Tricks::MAX_TRICKS),
             gamemode: Box::new(rules),
             contractors_kind: 2..=2,
@@ -248,9 +248,9 @@ mod tests {
     }
 
     fn misere() -> Contract {
-        let rules = ExactTricks::new(12);
+        let rules = ExactTricks::new(12, Tricks(0));
         Contract {
-            name: "Misere",
+            name: "Misere".to_string(),
             max_bid: None,
             gamemode: Box::new(rules),
             contractors_kind: 1..=3,
