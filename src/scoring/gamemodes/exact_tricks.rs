@@ -13,7 +13,7 @@ pub struct ExactTricks {
 impl ExactTricks {
     #[must_use]
     pub const fn new(min_points: i16, target: Tricks) -> Self {
-        Self { min_points , target}
+        Self { min_points, target }
     }
 }
 
@@ -35,7 +35,10 @@ impl Score for ExactTricks {
 mod tests {
     use super::*;
 
-    const MISERE: ExactTricks = ExactTricks { min_points: 12, target: Tricks(0) };
+    const MISERE: ExactTricks = ExactTricks {
+        min_points: 12,
+        target: Tricks(0),
+    };
 
     #[test]
     fn win() {

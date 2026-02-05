@@ -3,7 +3,7 @@ use crate::{
     players::PlayerId,
     scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase},
 };
-use std::{ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
 pub mod hand;
 pub use hand::{Hand, HandBuildError, HandRecap};

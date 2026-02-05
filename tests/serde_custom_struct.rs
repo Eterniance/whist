@@ -12,7 +12,7 @@ mod test {
 
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     struct ContractHolder {
-        contract: Contract
+        contract: Contract,
     }
 
     #[typetag::serde]
@@ -51,18 +51,18 @@ mod test {
             contractors_kind: 1..=3,
             gamemode: Box::new(gamemode),
         };
-        let holder = ContractHolder {contract};
+        let holder = ContractHolder { contract };
 
         let s = serde_json::to_string(&holder).unwrap();
-    let back: ContractHolder = serde_json::from_str(&s).unwrap();
+        let back: ContractHolder = serde_json::from_str(&s).unwrap();
 
-    assert_eq!(back.contract.name, "Queens chase");
-    assert_eq!(back.contract.contractors_kind, 1..=3);
-    assert_eq!(back.contract.gamemode.min_tricks(), Tricks::new(0).unwrap());
+        assert_eq!(back.contract.name, "Queens chase");
+        assert_eq!(back.contract.contractors_kind, 1..=3);
+        assert_eq!(back.contract.gamemode.min_tricks(), Tricks::new(0).unwrap());
     }
 
     #[test]
-    fn whole_game() -> Result<(), Box<dyn Error>>{
+    fn whole_game() -> Result<(), Box<dyn Error>> {
         let name = "Queens chase".to_string();
         let mut players = build_players()?;
         let gamemode = Chase4 {};
@@ -82,7 +82,7 @@ mod test {
         let hand = hb.build()?;
         assert_eq!(hand.gamemode_name(), name);
         let scores = hand.get_score()?;
-        let expected_score_1 = [10,-15,-5,10];
+        let expected_score_1 = [10, -15, -5, 10];
         assert_eq!(scores, expected_score_1);
         players.update_score(&scores)?;
         assert_eq!(players.current_scores(), expected_score_1);
@@ -94,11 +94,11 @@ mod test {
         hb.set_tricks(&[t!(4)])?;
         let hand = hb.build()?;
         let scores = hand.get_score()?;
-        let expected_score_2 = [-7,-7,-7,21];
+        let expected_score_2 = [-7, -7, -7, 21];
         assert_eq!(scores, expected_score_2);
         players.update_score(&scores)?;
         assert_eq!(players.current_scores().iter().sum::<i16>(), 0);
-        assert_eq!(players.current_scores(), [3,-22,-12,31]);
+        assert_eq!(players.current_scores(), [3, -22, -12, 31]);
 
         Ok(())
     }
