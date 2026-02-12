@@ -44,10 +44,7 @@ pub trait Score: Debug + DynClone {
         let mut scores = [0; TOTAL_PLAYERS];
         let mut already_set_mask = 0;
         for (id, tricks) in players_and_tricks {
-            let score = self.calculate_score(*tricks);
             let idx = id.idx();
-            scores[idx] = score;
-
             let already_set_bit = 1 << idx;
             if (already_set_mask & already_set_bit) != 0 {
                 return Err("Duplicate PlayerId".into());
