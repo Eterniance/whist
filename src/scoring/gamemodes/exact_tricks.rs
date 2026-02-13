@@ -38,6 +38,13 @@ impl Score for ExactTricks {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ExactTricksDuo(ExactTricks);
 
+impl ExactTricksDuo {
+    #[must_use]
+    pub const fn new(inner: ExactTricks) -> Self {
+        Self(inner)
+    }
+}
+
 #[cfg_attr(feature = "serde", typetag::serde)]
 impl Score for ExactTricksDuo {
     fn calculate_score(&self, tricks: CollectedTricks) -> i16 {

@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     players.update_score(&scores)?;
     assert_eq!(players.current_scores(), [3, 3, -3, -3]);
 
-    let mut hand_builder = HandBuilder::new(contracts[1].clone()); // Seul
+    let mut hand_builder = HandBuilder::new(contracts[2].clone()); // Seul
 
     let c1 = players.get_id("Player 3").ok_or("no player")?;
     let contractors = [c1];

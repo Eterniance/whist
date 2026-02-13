@@ -1,5 +1,5 @@
 use crate::{
-    CollectedTricks, TOTAL_PLAYERS,
+    CollectedTricks, ExactTricksDuo, TOTAL_PLAYERS,
     players::PlayerId,
     scoring::{CappedChase, ExactTricks, Score, Tricks, TricksChase},
 };
@@ -85,13 +85,22 @@ pub fn default_contracts() -> Vec<Contract> {
     let emballage = Contract {
         name: "Emballage".to_string(),
         max_bid: Some(Tricks::MAX_TRICKS),
-        gamemode: Box::new(rules),
         contractors_kind: 2..=2,
+        gamemode: Box::new(rules),
     };
+
+    let tricks_to_win = Tricks::new(8).expect("Withing range");
+    let rules = TricksChase::new(tricks_to_win, 6, 0);
+    let trou = Contract {
+        name: "Trou".to_string(),
+        max_bid: Some(Tricks(9)),
+        contractors_kind: 2..=2,
+        gamemode: Box::new(rules),
+    };
+
     let tricks_to_win = Tricks::new(6).expect("Withing range");
     let max_tricks_allowed = Tricks::new(8).expect("Within range");
     let rules = CappedChase::new(tricks_to_win, 6, 3, max_tricks_allowed);
-
     let seul = Contract {
         name: "Seul".to_string(),
         max_bid: Some(max_tricks_allowed),
@@ -108,12 +117,36 @@ pub fn default_contracts() -> Vec<Contract> {
         gamemode: Box::new(rules),
     };
 
+    let rules = CappedChase::new(Tricks(8), 15, 0, Tricks(8));
+    let huit_sur_misere = Contract {
+        name: "Huit sur Misere".to_string(),
+        max_bid: None,
+        contractors_kind: 1..=1,
+        gamemode: Box::new(rules),
+    };
+
+    let rules = CappedChase::new(Tricks(9), 18, 0, Tricks(9));
+    let abondance = Contract {
+        name: "Abondance".to_string(),
+        max_bid: None,
+        contractors_kind: 1..=1,
+        gamemode: Box::new(rules),
+    };
+
+    let rules = ExactTricksDuo::new(ExactTricks::new(6, Tricks(0)));
+    let misere_duo = Contract {
+        name: "Misere à deux".to_string(),
+        max_bid: None,
+        contractors_kind: 2..=2,
+        gamemode: Box::new(rules),
+    };
+
     let rules = ExactTricks::new(24, Tricks(0));
 
     let grande_misere = Contract {
         name: "Grande Misere".to_string(),
         max_bid: None,
-        contractors_kind: 1..=3,
+        contractors_kind: 1..=1,
         gamemode: Box::new(rules),
     };
 
@@ -122,43 +155,44 @@ pub fn default_contracts() -> Vec<Contract> {
     let grande_misere_sur_trou = Contract {
         name: "Grande Misere sur trou".to_string(),
         max_bid: None,
-        contractors_kind: 1..=3,
+        contractors_kind: 1..=1,
+        gamemode: Box::new(rules),
+    };
+
+    let rules = CappedChase::new(Tricks::MAX_TRICKS, 120, 0, Tricks::MAX_TRICKS);
+    let schlem = Contract {
+        name: "Schlem".to_string(),
+        max_bid: None,
+        contractors_kind: 1..=1,
         gamemode: Box::new(rules),
     };
 
     vec![
         emballage,
+        trou,
         seul,
         petite_misere,
+        huit_sur_misere,
+        abondance,
+        misere_duo,
         grande_misere,
         grande_misere_sur_trou,
+        schlem,
     ]
 }
 
+#[allow(unused)]
+fn get_contract(name: &str) -> Contract {
+    default_contracts()
+        .into_iter()
+        .find(|c| c.name == name)
+        .unwrap()
+}
+
 #[cfg(test)]
-mod tests {
+mod tests_contract_struct {
     use super::*;
     use crate::{p_and_t, t};
-
-    fn get_contract(name: &str) -> Contract {
-        default_contracts()
-            .into_iter()
-            .find(|c| c.name == name)
-            .unwrap()
-    }
-
-    #[test]
-    fn dutch() {
-        let scorables = default_contracts();
-        let emballage = &scorables[0];
-        let emballage_score = emballage
-            .gamemode
-            .calculate_score(crate::CollectedTricks::from_tricks(t!(8)));
-
-        let expected_score = 2;
-
-        assert_eq!(expected_score, emballage_score);
-    }
 
     #[test]
     fn adjusted_tricks_without_bid() {
@@ -288,5 +322,211 @@ mod tests {
         let scores = contract.get_scores(contractors_tricks, bid).unwrap();
 
         assert_eq!(scores, [6, -2, -2, -2]);
+    }
+}
+
+#[cfg(test)]
+mod tests_contract_instance {
+    use super::*;
+    use crate::t;
+
+    #[test]
+    fn emballage() {
+        let emballage = get_contract("Emballage");
+        let score = emballage
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(8)));
+
+        let expected_score = 2;
+
+        assert_eq!(expected_score, score);
+
+        let score = emballage
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 12;
+
+        assert_eq!(expected_score, score);
+    }
+
+    #[test]
+    fn trou() {
+        let mode = get_contract("Trou");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(8)));
+
+        let expected_score = 6;
+
+        assert_eq!(expected_score, score);
+
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 12;
+
+        assert_eq!(expected_score, score);
+    }
+
+    #[test]
+    fn seul() {
+        let mode = get_contract("Seul");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(6)));
+
+        let expected_score = 6;
+
+        assert_eq!(expected_score, score);
+
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 12;
+
+        assert_eq!(expected_score, score);
+    }
+
+    #[test]
+    fn misere() {
+        let mode = get_contract("Petite Misere");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(0)));
+
+        let expected_score = 12;
+
+        assert_eq!(expected_score, score);
+
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = -24;
+
+        assert_eq!(expected_score, score);
+    }
+
+    #[test]
+    fn huit_sur_misere() {
+        let mode = get_contract("Huit sur Misere");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(8)));
+
+        let expected_score = 15;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 15;
+
+        assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn abondance() {
+        let mode = get_contract("Abondance");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(9)));
+
+        let expected_score = 18;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 18;
+
+        assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn misere_duo() {
+        let mode = get_contract("Misere à deux");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(0)));
+
+        let expected_score = 6;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = -6;
+
+        assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn grande_misere() {
+        let mode = get_contract("Grande Misere");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(0)));
+
+        let expected_score = 24;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = -48;
+
+        assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn grande_misere_sur_trou() {
+        let mode = get_contract("Grande Misere sur trou");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(0)));
+
+        let expected_score = 36;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = -72;
+
+        assert_eq!(expected_score, emballage_score);
+    }
+
+    #[test]
+    fn schlem() {
+        let mode = get_contract("Schlem");
+        let score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(13)));
+
+        let expected_score = 120;
+
+        assert_eq!(expected_score, score);
+
+        let emballage_score = mode
+            .gamemode
+            .calculate_score(crate::CollectedTricks::from_tricks(t!(12)));
+
+        let expected_score = -240;
+
+        assert_eq!(expected_score, emballage_score);
     }
 }
