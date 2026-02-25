@@ -52,7 +52,7 @@ impl Player {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PlayersBuilder {
-    players: Vec<Player>,
+    pub players: Vec<Player>,
     next_idx: usize,
     name_to_id: HashMap<String, PlayerId>,
 }

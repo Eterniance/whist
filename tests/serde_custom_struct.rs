@@ -81,7 +81,7 @@ mod test {
         hb.set_tricks(&[t!(1), t!(3)])?;
         let hand = hb.build()?;
         assert_eq!(hand.gamemode_name(), name);
-        let scores = hand.get_score()?;
+        let scores = hand.get_scores()?;
         let expected_score_1 = [10, -15, -5, 10];
         assert_eq!(scores, expected_score_1);
         players.update_score(&scores)?;
@@ -93,7 +93,7 @@ mod test {
         hb.set_contractors(&contractors)?;
         hb.set_tricks(&[t!(4)])?;
         let hand = hb.build()?;
-        let scores = hand.get_score()?;
+        let scores = hand.get_scores()?;
         let expected_score_2 = [-7, -7, -7, 21];
         assert_eq!(scores, expected_score_2);
         players.update_score(&scores)?;

@@ -25,7 +25,7 @@ fn run_case(
 
     assert_eq!(hand.gamemode_name(), "Petite Misere");
 
-    let scores = hand.get_score()?;
+    let scores = hand.get_scores()?;
     assert_eq!(scores, expected_scores);
 
     players.update_score(&scores)?;
@@ -72,7 +72,7 @@ fn petite_misere_contractors_kind_1_2_3() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(hand.gamemode_name(), "Petite Misere");
 
-    let scores = hand.get_score()?;
+    let scores = hand.get_scores()?;
     assert_eq!(scores, [-24, 0, 12, 12]);
 
     players.update_score(&scores)?;

@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let hand = hand_builder.build()?;
     assert_eq!(hand.gamemode_name(), "Emballage");
 
-    let scores = hand.get_score()?;
+    let scores = hand.get_scores()?;
     assert_eq!(scores, [3, 3, -3, -3]);
     players.update_score(&scores)?;
     assert_eq!(players.current_scores(), [3, 3, -3, -3]);
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let hand = hand_builder.build()?;
     assert_eq!(hand.gamemode_name(), "Seul");
 
-    let scores = hand.get_score()?;
+    let scores = hand.get_scores()?;
     assert_eq!(scores, [-2, -2, 6, -2]);
     players.update_score(&scores)?;
     assert_eq!(players.current_scores(), [1, 1, 3, -5]);

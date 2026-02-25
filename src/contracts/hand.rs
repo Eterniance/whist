@@ -31,7 +31,7 @@ impl Hand {
     /// # Panics
     /// - Panics if a `PlayerId` index is out of bounds (expected to be `0..4`).
     /// - Panics if internal invariants are violated (final score sum is not zero).
-    pub fn get_score(&self) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
+    pub fn get_scores(&self) -> Result<[i16; TOTAL_PLAYERS], Box<dyn std::error::Error>> {
         self.contract.get_scores(&self.contractors_tricks, self.bid)
     }
 
@@ -279,7 +279,7 @@ mod tests {
         );
         assert_eq!(hand.bid, Some(bid));
 
-        let scores = hand.get_score().unwrap();
+        let scores = hand.get_scores().unwrap();
         assert_eq!(scores, [-3, 3, 3, -3]);
     }
 
@@ -324,7 +324,7 @@ mod tests {
 
         assert!(hand.bid.is_none());
 
-        let scores = hand.get_score().unwrap();
+        let scores = hand.get_scores().unwrap();
         assert_eq!(scores, [-4, 12, -4, -4]);
     }
 
@@ -354,7 +354,7 @@ mod tests {
         let hand = hb.build().unwrap();
         assert_eq!(hand.contractors_tricks, p_and_t!(0).to_vec());
 
-        let scores = hand.get_score().unwrap();
+        let scores = hand.get_scores().unwrap();
         assert_eq!(scores, [12, -4, -4, -4]);
     }
 
@@ -366,7 +366,7 @@ mod tests {
             bid: Some(t!(9)),
         };
 
-        let scores = hand.get_score().unwrap();
+        let scores = hand.get_scores().unwrap();
         assert_eq!(scores, [6, 6, -6, -6]);
     }
 
@@ -382,7 +382,7 @@ mod tests {
             bid: Some(t!(9)),
         };
 
-        let scores = hand.get_score().unwrap();
+        let scores = hand.get_scores().unwrap();
         assert_eq!(scores, [0, -24, 12, 12]);
     }
 }

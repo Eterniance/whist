@@ -2,7 +2,7 @@ pub mod contracts;
 pub mod players;
 mod scoring;
 
-pub use self::{contracts::*, scoring::*};
+pub use self::{contracts::*, scoring::*, players::*};
 pub use crate::contracts::hand::{HandBuildError, InputError};
 
 use thiserror::Error;
