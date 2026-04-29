@@ -170,6 +170,7 @@ impl HandBuilder {
             return Err(HandBuildError("Contractors must be set before Tricks"));
         }
         if self.contract.contractors_kind.len() != tricks.len()
+            && tricks.len() != 1
             && self
                 .contractors
                 .as_ref()
