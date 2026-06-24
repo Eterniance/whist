@@ -74,6 +74,11 @@ impl HandBuilder {
     }
 
     #[must_use]
+    pub fn contract_name(&self) -> String {
+        self.contract.name.clone()
+    }
+
+    #[must_use]
     pub fn all_requests(&self) -> Vec<InputRequest> {
         let mut requests = vec![self.contract_request()];
 
@@ -222,7 +227,7 @@ impl HandBuilder {
 
 #[derive(Debug, Error, Clone, Eq, PartialEq)]
 #[error("{0}")]
-pub struct HandBuildError(&'static str);
+pub struct HandBuildError(pub &'static str);
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
